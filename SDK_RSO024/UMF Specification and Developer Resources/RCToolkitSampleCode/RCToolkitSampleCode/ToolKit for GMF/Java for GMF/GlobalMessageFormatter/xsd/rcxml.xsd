@@ -1,0 +1,94 @@
+<!-- -*-mode: xml-*- -->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://securetransport.dw/rcservice/xml"
+    xmlns:target="http://securetransport.dw/rcservice/xml"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+>
+    <!-- Common Types. -->
+    <xs:complexType name = "PayloadType">
+        <xs:simpleContent>
+            <xs:extension base = "xs:string">
+                <xs:attribute name = "Encoding">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                                <xs:enumeration value="xml_escape"/>
+                                <xs:enumeration value="cdata"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+		</xs:attribute>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name = "ServiceIDType">
+        <xs:restriction base = "xs:string" />
+    </xs:simpleType>
+
+    <!-- ReqClientIDType. -->
+    <xs:complexType name = "ReqClientIDType">
+        <xs:sequence>
+            <xs:element name = "DID" type = "xs:string" />
+            <xs:element name = "App" type = "xs:string" />
+            <xs:element name = "Auth" type = "xs:string" />
+            <xs:element name = "ClientRef" type = "xs:string" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- RespClientIDType. -->
+    <xs:complexType name = "RespClientIDType">
+        <xs:sequence>
+            <xs:element name = "DID" type = "xs:string" />
+            <xs:element name = "ClientRef" type = "xs:string" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- StatusType. -->
+    <xs:complexType name = "StatusType">
+        <xs:simpleContent>
+            <xs:extension base = "xs:string">
+                <xs:attribute name = "StatusCode" type = "xs:string" use = "required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+    <!-- TransactionType. -->
+    <xs:complexType name = "TransactionType">
+        <xs:sequence>
+                <xs:element name = "ServiceID" type = "target:ServiceIDType" />
+                <xs:element name = "Payload" type = "target:PayloadType" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- TransactionResponseType. -->
+    <xs:complexType name = "TransactionResponseType">
+        <xs:sequence>
+            <xs:element name = "ReturnCode" type = "xs:string" />
+            <xs:element name = "Payload" type = "target:PayloadType" minOccurs="0" />
+        </xs:sequence>
+    </xs:complexType>
+    <!-- Request element. -->
+    <xs:element name = "Request">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name = "ReqClientID" type = "target:ReqClientIDType" />
+                <xs:element name = "Transaction" type = "target:TransactionType" />
+            </xs:sequence>
+            <xs:attribute name="Version" type="xs:string" use="required" fixed="3"/>
+            <xs:attribute name = "ClientTimeout" type = "xs:integer" />
+            
+        </xs:complexType>
+    </xs:element>
+    <!-- Response element. -->
+    <xs:element name = "Response">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name = "RespClientID" type = "target:RespClientIDType" />
+                <xs:element name = "Status" type = "target:StatusType" />
+                <xs:element name = "TransactionResponse" type = "target:TransactionResponseType" minOccurs="0" />
+            </xs:sequence>
+            <xs:attribute name="Version" type="xs:string" use="required" fixed="3"/>
+           
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

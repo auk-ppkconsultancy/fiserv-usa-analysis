@@ -1,0 +1,2936 @@
+[
+  {
+    "code": "000",
+    "description": "Approve",
+    "category": "approved",
+    "retryable": false,
+    "action": "display_approved",
+    "merchantMessage": "Transaction approved",
+    "cardholderMessage": "Approved"
+  },
+  {
+    "code": "001",
+    "description": "Schema Validation Error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Schema validation error — contact support",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "002",
+    "description": "Approve for partial amount",
+    "category": "approved",
+    "retryable": false,
+    "action": "display_approved",
+    "merchantMessage": "Partial amount approved",
+    "cardholderMessage": "Approved for partial amount"
+  },
+  {
+    "code": "003",
+    "description": "Approve VIP",
+    "category": "approved",
+    "retryable": false,
+    "action": "display_approved",
+    "merchantMessage": "Transaction approved (VIP)",
+    "cardholderMessage": "Approved"
+  },
+  {
+    "code": "100",
+    "description": "Do not honor",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Transaction declined — do not honor",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "101",
+    "description": "Expired card",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Declined — expired card",
+    "cardholderMessage": "Card expired, please use a different card"
+  },
+  {
+    "code": "102",
+    "description": "Suspected fraud",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Declined — suspected fraud",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "103",
+    "description": "Unable to process TeleCheck",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Unable to process TeleCheck",
+    "cardholderMessage": "Transaction cannot be processed"
+  },
+  {
+    "code": "104",
+    "description": "Restricted card",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Declined — restricted card",
+    "cardholderMessage": "Card restricted, please use a different card"
+  },
+  {
+    "code": "105",
+    "description": "Call acquirer security department",
+    "category": "declined",
+    "retryable": false,
+    "action": "contact_issuer",
+    "merchantMessage": "Call acquirer security department",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "106",
+    "description": "Allowable PIN tries exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "PIN tries exceeded",
+    "cardholderMessage": "PIN tries exceeded, please contact your card issuer"
+  },
+  {
+    "code": "107",
+    "description": "Call for authorization",
+    "category": "declined",
+    "retryable": false,
+    "action": "contact_issuer",
+    "merchantMessage": "Call for authorization",
+    "cardholderMessage": "Transaction requires authorization, please contact your card issuer"
+  },
+  {
+    "code": "108",
+    "description": "Refer to issuer special conditions",
+    "category": "declined",
+    "retryable": false,
+    "action": "contact_issuer",
+    "merchantMessage": "Refer to issuer — special conditions",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "109",
+    "description": "Invalid merchant",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid merchant configuration",
+    "cardholderMessage": "Transaction cannot be processed at this terminal"
+  },
+  {
+    "code": "110",
+    "description": "Invalid amount",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid amount",
+    "cardholderMessage": "Invalid transaction amount"
+  },
+  {
+    "code": "111",
+    "description": "Invalid Host Totals Date",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid host totals date",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "112",
+    "description": "DES Encryption not allowed",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Encryption error — DES not allowed",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "113",
+    "description": "Host Totals Incomplete",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Host totals incomplete",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "114",
+    "description": "Invalid account type",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid account type",
+    "cardholderMessage": "Account type not supported, please use a different card"
+  },
+  {
+    "code": "116",
+    "description": "Not sufficient funds",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Insufficient funds",
+    "cardholderMessage": "Insufficient funds"
+  },
+  {
+    "code": "117",
+    "description": "Incorrect PIN or PIN length error",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Incorrect PIN",
+    "cardholderMessage": "Incorrect PIN, please try again"
+  },
+  {
+    "code": "118",
+    "description": "No card record",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "No card record on file",
+    "cardholderMessage": "Card not recognized, please use a different card"
+  },
+  {
+    "code": "119",
+    "description": "Transaction not permitted to cardholder",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Transaction not permitted to cardholder",
+    "cardholderMessage": "Transaction not permitted, please contact your card issuer"
+  },
+  {
+    "code": "120",
+    "description": "Transaction not permitted to terminal",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Transaction not permitted to terminal",
+    "cardholderMessage": "Transaction cannot be processed at this terminal"
+  },
+  {
+    "code": "121",
+    "description": "Exceeds withdrawal amount limit",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Exceeds withdrawal amount limit",
+    "cardholderMessage": "Amount exceeds your withdrawal limit"
+  },
+  {
+    "code": "122",
+    "description": "Security violation",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Security violation",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "123",
+    "description": "Exceeds withdrawal frequency limit",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Exceeds withdrawal frequency limit",
+    "cardholderMessage": "Transaction frequency limit exceeded"
+  },
+  {
+    "code": "124",
+    "description": "Violation of law",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Declined — violation of law",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "125",
+    "description": "Card being used in off hours",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Card used outside permitted hours",
+    "cardholderMessage": "Card not permitted at this time"
+  },
+  {
+    "code": "129",
+    "description": "Suspected counterfeit card",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Suspected counterfeit card",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "130",
+    "description": "Invalid terminal",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid terminal configuration",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "131",
+    "description": "Invalid account number",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid account number",
+    "cardholderMessage": "Invalid card number, please use a different card"
+  },
+  {
+    "code": "132",
+    "description": "Unmatched card expiry date",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Unmatched card expiry date",
+    "cardholderMessage": "Card expiry date mismatch, please check your card details"
+  },
+  {
+    "code": "133",
+    "description": "TPP ID not found",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "TPP ID not found — contact support",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "134",
+    "description": "Not sufficient funds",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Insufficient funds",
+    "cardholderMessage": "Insufficient funds"
+  },
+  {
+    "code": "135",
+    "description": "Invalid Country Code",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid country code — contact support",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "136",
+    "description": "Invalid Region Code",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid region code — contact support",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "150",
+    "description": "Invalid merchant set up",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid merchant setup — contact support",
+    "cardholderMessage": "Transaction cannot be processed at this terminal"
+  },
+  {
+    "code": "151",
+    "description": "Activation failed",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Prepaid card activation failed",
+    "cardholderMessage": "Card activation failed"
+  },
+  {
+    "code": "152",
+    "description": "Exceeds limit",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Exceeds limit",
+    "cardholderMessage": "Transaction exceeds limit"
+  },
+  {
+    "code": "153",
+    "description": "Already redeemed",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Prepaid card already redeemed",
+    "cardholderMessage": "Card already redeemed"
+  },
+  {
+    "code": "154",
+    "description": "Over monthly limit",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Over monthly limit",
+    "cardholderMessage": "Monthly limit exceeded"
+  },
+  {
+    "code": "155",
+    "description": "Recharge amount exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Recharge amount exceeded",
+    "cardholderMessage": "Recharge amount exceeded"
+  },
+  {
+    "code": "156",
+    "description": "Max recharges exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Maximum recharges exceeded",
+    "cardholderMessage": "Maximum number of recharges exceeded"
+  },
+  {
+    "code": "157",
+    "description": "Invalid entry",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid entry for prepaid card",
+    "cardholderMessage": "Invalid entry"
+  },
+  {
+    "code": "208",
+    "description": "Lost Card/Lost Check",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Lost card — do not honor",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "209",
+    "description": "Stolen card",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Stolen card — do not honor",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "210",
+    "description": "Invalid use of MCC",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid use of Merchant Category Code",
+    "cardholderMessage": "Transaction cannot be processed"
+  },
+  {
+    "code": "212",
+    "description": "Missing conditional data",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Missing conditional data in request",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "213",
+    "description": "Invalid account number for card type",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid account number for card type",
+    "cardholderMessage": "Card number invalid for this card type"
+  },
+  {
+    "code": "214",
+    "description": "Invalid payment type/card type for merchant ID",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Payment type not allowed for this merchant ID",
+    "cardholderMessage": "This payment type is not accepted here"
+  },
+  {
+    "code": "215",
+    "description": "Invalid transaction for Merchant ID",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Transaction type not valid for this Merchant ID",
+    "cardholderMessage": "Transaction type not available"
+  },
+  {
+    "code": "216",
+    "description": "Invalid TransArmor request",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid TransArmor request",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "217",
+    "description": "Missing or invalid secure payment data",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Missing or invalid secure payment data",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "218",
+    "description": "Merchant ID not enabled for Secure Code",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Merchant ID not enabled for Secure Code",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "219",
+    "description": "Invalid Merchant Category Code",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid Merchant Category Code",
+    "cardholderMessage": "Transaction cannot be processed"
+  },
+  {
+    "code": "220",
+    "description": "Check fraud — decline",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check fraud decline",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "221",
+    "description": "Check fraud — warning",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check fraud warning",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "222",
+    "description": "Partial auth not allowed",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Partial authorization not allowed",
+    "cardholderMessage": "Partial payment not available"
+  },
+  {
+    "code": "223",
+    "description": "Address check failed",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Address verification failed",
+    "cardholderMessage": "Address verification failed"
+  },
+  {
+    "code": "224",
+    "description": "Account blocked possible compromise",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Account blocked — possible compromise",
+    "cardholderMessage": "Account blocked, please contact your card issuer"
+  },
+  {
+    "code": "225",
+    "description": "Check decline — negative file",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check declined — negative file",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "226",
+    "description": "Check decline — demo/test account",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check declined — demo/test account",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "227",
+    "description": "Check decline — return item",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check declined — return item",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "228",
+    "description": "Check decline — endorsement",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check declined — endorsement issue",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "229",
+    "description": "Check decline — MICR error",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check declined — MICR error",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "230",
+    "description": "Check decline — account frozen",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check declined — account frozen",
+    "cardholderMessage": "Account frozen, please contact your bank"
+  },
+  {
+    "code": "231",
+    "description": "Check decline — duplicate check",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check declined — duplicate",
+    "cardholderMessage": "Duplicate transaction"
+  },
+  {
+    "code": "232",
+    "description": "Check decline — address mismatch",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Check declined — address mismatch",
+    "cardholderMessage": "Address verification failed"
+  },
+  {
+    "code": "233",
+    "description": "Auth response date not valid",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Authorization response date not valid",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "237",
+    "description": "Deny new card issued",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Declined — new card has been issued",
+    "cardholderMessage": "A new card has been issued, please use the new card"
+  },
+  {
+    "code": "238",
+    "description": "BIN blocked",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "BIN blocked",
+    "cardholderMessage": "This card type is not accepted"
+  },
+  {
+    "code": "242",
+    "description": "Customer opt-out",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Customer opt-out",
+    "cardholderMessage": "Transaction declined per your request"
+  },
+  {
+    "code": "243",
+    "description": "Institution does not accept ACH",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Institution does not accept ACH",
+    "cardholderMessage": "ACH not accepted by your institution"
+  },
+  {
+    "code": "244",
+    "description": "Original transaction not approved",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Original transaction was not approved",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "245",
+    "description": "Invalid MICR",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid MICR data",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "246",
+    "description": "Declined due to high risk",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Declined — high risk",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "247",
+    "description": "Declined due to stand-in rules",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Declined by stand-in rules",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "248",
+    "description": "Conditional Approval hold shipping 24h",
+    "category": "approved",
+    "retryable": false,
+    "action": "display_approved",
+    "merchantMessage": "Conditional approval — hold shipping 24 hours",
+    "cardholderMessage": "Approved"
+  },
+  {
+    "code": "250",
+    "description": "Re-auth declined original not found",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Re-authorization declined — original not found",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "251",
+    "description": "Re-auth declined data mismatch",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Re-authorization declined — data mismatch",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "252",
+    "description": "Re-auth declined amount exceeds original",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Re-authorization declined — amount exceeds original",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "253",
+    "description": "Re-auth declined timeframes exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Re-authorization declined — timeframe exceeded",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "254",
+    "description": "Counter Offer Personal Guaranty",
+    "category": "info",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Counter offer — personal guaranty required",
+    "cardholderMessage": "Additional information required"
+  },
+  {
+    "code": "300",
+    "description": "Invalid EAN or SCV",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid EAN or security code (prepaid)",
+    "cardholderMessage": "Invalid card data"
+  },
+  {
+    "code": "301",
+    "description": "Lock expired on prepaid",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Lock expired on prepaid card",
+    "cardholderMessage": "Card lock has expired"
+  },
+  {
+    "code": "302",
+    "description": "Account closed",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Prepaid account closed",
+    "cardholderMessage": "Account closed"
+  },
+  {
+    "code": "303",
+    "description": "Unknown account",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Unknown prepaid account",
+    "cardholderMessage": "Account not found"
+  },
+  {
+    "code": "304",
+    "description": "Inactive account",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Inactive prepaid account",
+    "cardholderMessage": "Account is inactive"
+  },
+  {
+    "code": "308",
+    "description": "Already active",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Prepaid card already active",
+    "cardholderMessage": "Card is already active"
+  },
+  {
+    "code": "311",
+    "description": "Not lost or stolen",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Card not reported lost or stolen",
+    "cardholderMessage": "Card status error"
+  },
+  {
+    "code": "315",
+    "description": "Bad mag stripe",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Bad magnetic stripe (prepaid)",
+    "cardholderMessage": "Card read error, please try again"
+  },
+  {
+    "code": "316",
+    "description": "Incorrect location",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Incorrect location for prepaid transaction",
+    "cardholderMessage": "Transaction not available at this location"
+  },
+  {
+    "code": "317",
+    "description": "Max balance exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Maximum balance exceeded (prepaid)",
+    "cardholderMessage": "Maximum card balance exceeded"
+  },
+  {
+    "code": "318",
+    "description": "Invalid amount",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid amount (prepaid)",
+    "cardholderMessage": "Invalid amount"
+  },
+  {
+    "code": "319",
+    "description": "Invalid clerk",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid clerk ID (prepaid)",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "320",
+    "description": "Invalid password",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Invalid password (prepaid)",
+    "cardholderMessage": "Invalid password, please try again"
+  },
+  {
+    "code": "321",
+    "description": "Invalid new password",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Invalid new password (prepaid)",
+    "cardholderMessage": "Invalid new password, please try again"
+  },
+  {
+    "code": "322",
+    "description": "Exceeded account reloads",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Exceeded account reload limit (prepaid)",
+    "cardholderMessage": "Reload limit exceeded"
+  },
+  {
+    "code": "323",
+    "description": "Password retry exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Password retry limit exceeded (prepaid)",
+    "cardholderMessage": "Password attempts exceeded"
+  },
+  {
+    "code": "326",
+    "description": "Incorrect transaction version",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Incorrect transaction version (prepaid)",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "327",
+    "description": "Request not permitted by account",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Request not permitted by prepaid account",
+    "cardholderMessage": "Transaction not permitted for this account"
+  },
+  {
+    "code": "328",
+    "description": "Request not permitted by merchant location",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Request not permitted at this merchant location",
+    "cardholderMessage": "Transaction not available at this location"
+  },
+  {
+    "code": "329",
+    "description": "Bad repay_date",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid repay date (prepaid)",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "330",
+    "description": "Bad checksum",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Bad checksum (prepaid)",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "331",
+    "description": "Balance not available",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Balance not available (prepaid)",
+    "cardholderMessage": "Balance information unavailable"
+  },
+  {
+    "code": "332",
+    "description": "Account locked",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Prepaid account locked",
+    "cardholderMessage": "Account is locked, please contact support"
+  },
+  {
+    "code": "333",
+    "description": "No previous transaction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "No previous transaction found (prepaid)",
+    "cardholderMessage": "Original transaction not found"
+  },
+  {
+    "code": "334",
+    "description": "Already reversed",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Transaction already reversed (prepaid)",
+    "cardholderMessage": "Transaction already reversed"
+  },
+  {
+    "code": "336",
+    "description": "Bad Authorization ID",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Bad Authorization ID (prepaid)",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "337",
+    "description": "Too many transactions requested",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Too many transactions requested (prepaid)",
+    "cardholderMessage": "Too many transactions, please wait"
+  },
+  {
+    "code": "338",
+    "description": "No transactions available",
+    "category": "info",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "No transactions available (prepaid)",
+    "cardholderMessage": "No transactions found"
+  },
+  {
+    "code": "339",
+    "description": "Transaction history not available",
+    "category": "info",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Transaction history not available (prepaid)",
+    "cardholderMessage": "Transaction history unavailable"
+  },
+  {
+    "code": "340",
+    "description": "New password required",
+    "category": "info",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "New password required (prepaid)",
+    "cardholderMessage": "Please set a new password"
+  },
+  {
+    "code": "341",
+    "description": "Invalid status change",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid status change (prepaid)",
+    "cardholderMessage": "Status change not permitted"
+  },
+  {
+    "code": "342",
+    "description": "Void of activation after activity",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Cannot void activation after activity (prepaid)",
+    "cardholderMessage": "Void not permitted"
+  },
+  {
+    "code": "343",
+    "description": "No phone service",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "No phone service (prepaid)",
+    "cardholderMessage": "Phone service unavailable"
+  },
+  {
+    "code": "344",
+    "description": "Internet access disabled",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Internet access disabled (prepaid)",
+    "cardholderMessage": "Internet access disabled"
+  },
+  {
+    "code": "345",
+    "description": "Invalid Date or Time",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid date or time (prepaid)",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "350",
+    "description": "Additional customer authentication required (Discover)",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Additional customer authentication required",
+    "cardholderMessage": "Additional authentication required"
+  },
+  {
+    "code": "351",
+    "description": "Customer PIN authentication required",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Customer PIN authentication required",
+    "cardholderMessage": "PIN authentication required"
+  },
+  {
+    "code": "355",
+    "description": "Invalid currency",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid currency (prepaid)",
+    "cardholderMessage": "Currency not supported"
+  },
+  {
+    "code": "356",
+    "description": "Currency Not Supported",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Currency not supported (prepaid)",
+    "cardholderMessage": "Currency not supported"
+  },
+  {
+    "code": "357",
+    "description": "Currency conversion error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Currency conversion error (prepaid)",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "359",
+    "description": "Terminal transaction number mismatch",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Terminal transaction number mismatch (prepaid)",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "367",
+    "description": "Target embossed card mismatch",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Target embossed card mismatch (prepaid)",
+    "cardholderMessage": "Card mismatch"
+  },
+  {
+    "code": "368",
+    "description": "No account link",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "No account link (prepaid)",
+    "cardholderMessage": "Account not linked"
+  },
+  {
+    "code": "369",
+    "description": "Invalid time zone",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid time zone (prepaid)",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "370",
+    "description": "Account on hold",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Account on hold (prepaid)",
+    "cardholderMessage": "Account on hold, please contact support"
+  },
+  {
+    "code": "372",
+    "description": "Promo location restricted",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Promotional location restricted (prepaid)",
+    "cardholderMessage": "Not available at this location"
+  },
+  {
+    "code": "373",
+    "description": "Invalid Card Account",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid card account (prepaid)",
+    "cardholderMessage": "Invalid card account"
+  },
+  {
+    "code": "374",
+    "description": "Product codes restricted",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Product codes restricted (prepaid)",
+    "cardholderMessage": "Product not available"
+  },
+  {
+    "code": "375",
+    "description": "Bad Post Date",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Bad post date (prepaid)",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "376",
+    "description": "Account status void lock",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Account void lock (prepaid)",
+    "cardholderMessage": "Account locked"
+  },
+  {
+    "code": "377",
+    "description": "Already active and tradable",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Already active and tradable (prepaid)",
+    "cardholderMessage": "Card already active"
+  },
+  {
+    "code": "378",
+    "description": "Account Purged",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Account purged (prepaid)",
+    "cardholderMessage": "Account no longer available"
+  },
+  {
+    "code": "380",
+    "description": "Bulk activation error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Bulk activation error (prepaid)",
+    "cardholderMessage": "Activation failed"
+  },
+  {
+    "code": "381",
+    "description": "Bulk activation un-attempted error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Bulk activation un-attempted error (prepaid)",
+    "cardholderMessage": "Activation failed"
+  },
+  {
+    "code": "382",
+    "description": "Bulk activation package amount error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Bulk activation package amount error (prepaid)",
+    "cardholderMessage": "Activation failed"
+  },
+  {
+    "code": "383",
+    "description": "Store location zero not allowed",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Store location zero not allowed (prepaid)",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "384",
+    "description": "Account row locked",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Account row locked — retry (prepaid)",
+    "cardholderMessage": "Please try again"
+  },
+  {
+    "code": "385",
+    "description": "Accepted but not yet processed",
+    "category": "info",
+    "retryable": false,
+    "action": "display_approved",
+    "merchantMessage": "Accepted but not yet processed (prepaid)",
+    "cardholderMessage": "Transaction accepted, processing"
+  },
+  {
+    "code": "402",
+    "description": "TransArmor Service Unavailable",
+    "category": "error",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "TransArmor service unavailable",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "403",
+    "description": "TransArmor Invalid Token/Account",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "TransArmor invalid token or account",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "404",
+    "description": "TransArmor Key Error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "TransArmor key error",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "414",
+    "description": "Void unable to process network cut-off elapsed",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Void failed — network cut-off elapsed (debit)",
+    "cardholderMessage": "Void not available, contact merchant"
+  },
+  {
+    "code": "430",
+    "description": "Prepaid Card Amount Over EU AMLCFT Limit",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Prepaid card amount exceeds EU AML/CFT limit",
+    "cardholderMessage": "Amount exceeds regulatory limit"
+  },
+  {
+    "code": "500",
+    "description": "Decline",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Transaction declined",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "501",
+    "description": "Date of Birth Error",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Date of birth error (check)",
+    "cardholderMessage": "Date of birth verification failed"
+  },
+  {
+    "code": "502",
+    "description": "Invalid State Code",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid state code (check)",
+    "cardholderMessage": "Invalid state code"
+  },
+  {
+    "code": "503",
+    "description": "New Account Information",
+    "category": "info",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "New account information available",
+    "cardholderMessage": "Account information has been updated"
+  },
+  {
+    "code": "504",
+    "description": "Do not try again",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Declined — do not try again",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "505",
+    "description": "Please retry",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Please retry transaction",
+    "cardholderMessage": "Please try again"
+  },
+  {
+    "code": "506",
+    "description": "Invalid Checking Account",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid checking account",
+    "cardholderMessage": "Invalid checking account"
+  },
+  {
+    "code": "507",
+    "description": "New Account Info available",
+    "category": "info",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "New account information available",
+    "cardholderMessage": "Account information has been updated"
+  },
+  {
+    "code": "508",
+    "description": "Try again later (recurring)",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Try again later (recurring)",
+    "cardholderMessage": "Please try again later"
+  },
+  {
+    "code": "509",
+    "description": "Do not try again (recurring - card expired)",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Do not retry — card expired (recurring)",
+    "cardholderMessage": "Card expired, please update payment method"
+  },
+  {
+    "code": "510",
+    "description": "New Account Info (recurring)",
+    "category": "info",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "New account info available (recurring)",
+    "cardholderMessage": "Account information has been updated"
+  },
+  {
+    "code": "511",
+    "description": "Try again later (recurring - get new expiry)",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Try again later — get new expiry (recurring)",
+    "cardholderMessage": "Please try again later"
+  },
+  {
+    "code": "512",
+    "description": "Service not allowed or invalid surcharge",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Service not allowed or invalid surcharge",
+    "cardholderMessage": "Transaction not permitted"
+  },
+  {
+    "code": "513",
+    "description": "Decline transaction not permitted to acquirer/terminal",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Transaction not permitted to acquirer/terminal",
+    "cardholderMessage": "Transaction not available at this terminal"
+  },
+  {
+    "code": "514",
+    "description": "Do not try again (recurring - security violation)",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Do not retry — security violation (recurring)",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "515",
+    "description": "Declined no term record on Fiserv system",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "No terminal record on Fiserv system",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "516",
+    "description": "Please retry (format error/routing/timeout)",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Please retry — format/routing/timeout error",
+    "cardholderMessage": "Please try again"
+  },
+  {
+    "code": "517",
+    "description": "CVV2 Declined",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "CVV2 declined",
+    "cardholderMessage": "Card security code verification failed"
+  },
+  {
+    "code": "518",
+    "description": "Invalid account/date or sales date in future",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid account/date or sales date in future",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "519",
+    "description": "Invalid Effective Date",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid effective date",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "520",
+    "description": "Reversal Rejected do not try again",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Reversal rejected — do not retry",
+    "cardholderMessage": "Transaction cannot be reversed"
+  },
+  {
+    "code": "521",
+    "description": "Enter lesser amount",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Enter a lesser amount",
+    "cardholderMessage": "Please enter a smaller amount"
+  },
+  {
+    "code": "522",
+    "description": "Cash Back greater than total Transaction amount",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Cash back exceeds total transaction amount",
+    "cardholderMessage": "Cash back amount too high"
+  },
+  {
+    "code": "523",
+    "description": "Crypto box offline",
+    "category": "error",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Crypto box offline",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "524",
+    "description": "Debit Switch unavailable Timeout Retry",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Debit switch unavailable — retry",
+    "cardholderMessage": "Please try again"
+  },
+  {
+    "code": "525",
+    "description": "Debit/EBT network cannot reach issuer",
+    "category": "error",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Debit/EBT network cannot reach issuer",
+    "cardholderMessage": "Network error, please try again"
+  },
+  {
+    "code": "526",
+    "description": "Undefined Card network cannot route",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Card network cannot route transaction",
+    "cardholderMessage": "Transaction cannot be processed, please use a different card"
+  },
+  {
+    "code": "527",
+    "description": "Network says Merchant ID/SE invalid",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Network reports invalid Merchant ID/SE",
+    "cardholderMessage": "Transaction cannot be processed at this terminal"
+  },
+  {
+    "code": "528",
+    "description": "Debit/EBT transaction count exceeds limit",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Debit/EBT transaction count exceeds limit",
+    "cardholderMessage": "Transaction limit exceeded"
+  },
+  {
+    "code": "529",
+    "description": "Resubmission violates frequency",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Resubmission violates frequency rules",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "530",
+    "description": "Network problem decrypting cryptogram",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Network error decrypting cryptogram",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "531",
+    "description": "Retry with 3DS data",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Retry with 3D Secure data",
+    "cardholderMessage": "Additional authentication required"
+  },
+  {
+    "code": "532",
+    "description": "DUKPT Base Key missing or incorrect",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "DUKPT base key missing or incorrect",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "533",
+    "description": "Invalid encryption key offset",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid encryption key offset",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "534",
+    "description": "Invalid master session key id",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid master session key ID",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "539",
+    "description": "No Checking Account",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "No checking account on file",
+    "cardholderMessage": "No checking account found"
+  },
+  {
+    "code": "540",
+    "description": "Edit Honor",
+    "category": "info",
+    "retryable": false,
+    "action": "display_approved",
+    "merchantMessage": "Edit honor (check)",
+    "cardholderMessage": "Transaction processed"
+  },
+  {
+    "code": "541",
+    "description": "No Savings Account",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "No savings account on file",
+    "cardholderMessage": "No savings account found"
+  },
+  {
+    "code": "542",
+    "description": "DUKPT PIN block processing error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "DUKPT PIN block processing error",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "548",
+    "description": "Fleet — prompt for odometer",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: odometer entry required",
+    "cardholderMessage": "Please enter odometer reading"
+  },
+  {
+    "code": "549",
+    "description": "Fleet — prompt for vehicle number",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: vehicle number required",
+    "cardholderMessage": "Please enter vehicle number"
+  },
+  {
+    "code": "550",
+    "description": "Fleet — prompt for driver ID",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: driver ID required",
+    "cardholderMessage": "Please enter driver ID"
+  },
+  {
+    "code": "551",
+    "description": "Fleet — prompt for vehicle ID and odometer",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: vehicle ID and odometer required",
+    "cardholderMessage": "Please enter vehicle ID and odometer"
+  },
+  {
+    "code": "552",
+    "description": "Fleet — prompt for driver ID and odometer",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: driver ID and odometer required",
+    "cardholderMessage": "Please enter driver ID and odometer"
+  },
+  {
+    "code": "553",
+    "description": "Fleet — prompt for vehicle number and driver ID",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: vehicle number and driver ID required",
+    "cardholderMessage": "Please enter vehicle number and driver ID"
+  },
+  {
+    "code": "554",
+    "description": "Fleet — prompt for vehicle number, driver ID, and odometer",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: vehicle number, driver ID, and odometer required",
+    "cardholderMessage": "Please enter vehicle number, driver ID, and odometer"
+  },
+  {
+    "code": "555",
+    "description": "Fleet — prompt for job number",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: job number required",
+    "cardholderMessage": "Please enter job number"
+  },
+  {
+    "code": "556",
+    "description": "Fleet — prompt for department number",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: department number required",
+    "cardholderMessage": "Please enter department number"
+  },
+  {
+    "code": "557",
+    "description": "Fleet — prompt for PO number",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: PO number required",
+    "cardholderMessage": "Please enter PO number"
+  },
+  {
+    "code": "558",
+    "description": "Fleet — prompt for license plate number",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: license plate number required",
+    "cardholderMessage": "Please enter license plate number"
+  },
+  {
+    "code": "559",
+    "description": "Fleet — odometer limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: odometer limit exceeded",
+    "cardholderMessage": "Odometer limit exceeded"
+  },
+  {
+    "code": "560",
+    "description": "Fleet — vehicle number limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: vehicle number limit exceeded",
+    "cardholderMessage": "Vehicle number limit exceeded"
+  },
+  {
+    "code": "561",
+    "description": "Fleet — driver ID limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: driver ID limit exceeded",
+    "cardholderMessage": "Driver ID limit exceeded"
+  },
+  {
+    "code": "562",
+    "description": "Fleet — job number limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: job number limit exceeded",
+    "cardholderMessage": "Job number limit exceeded"
+  },
+  {
+    "code": "563",
+    "description": "Fleet — department number limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: department number limit exceeded",
+    "cardholderMessage": "Department number limit exceeded"
+  },
+  {
+    "code": "564",
+    "description": "Fleet — PO number limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: PO number limit exceeded",
+    "cardholderMessage": "PO number limit exceeded"
+  },
+  {
+    "code": "565",
+    "description": "Fleet — license plate number limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: license plate number limit exceeded",
+    "cardholderMessage": "License plate number limit exceeded"
+  },
+  {
+    "code": "566",
+    "description": "Fleet — invalid product code",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid product code",
+    "cardholderMessage": "Invalid product code"
+  },
+  {
+    "code": "567",
+    "description": "Fleet — quantity limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: quantity limit exceeded",
+    "cardholderMessage": "Quantity limit exceeded"
+  },
+  {
+    "code": "568",
+    "description": "Fleet — dollar limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: dollar limit exceeded",
+    "cardholderMessage": "Dollar limit exceeded"
+  },
+  {
+    "code": "569",
+    "description": "Fleet — transaction count limit exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: transaction count limit exceeded",
+    "cardholderMessage": "Transaction count limit exceeded"
+  },
+  {
+    "code": "570",
+    "description": "Fleet — invalid clerk",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Fleet: invalid clerk",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "571",
+    "description": "Fleet — invalid security data",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid security data",
+    "cardholderMessage": "Security verification failed"
+  },
+  {
+    "code": "572",
+    "description": "Fleet — invalid fuel type",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid fuel type",
+    "cardholderMessage": "Invalid fuel type"
+  },
+  {
+    "code": "573",
+    "description": "Fleet — invalid service type",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid service type",
+    "cardholderMessage": "Invalid service type"
+  },
+  {
+    "code": "574",
+    "description": "Fleet — site/merchant restriction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: site/merchant restriction",
+    "cardholderMessage": "Not authorized at this location"
+  },
+  {
+    "code": "575",
+    "description": "Fleet — invalid prompt response",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: invalid prompt response",
+    "cardholderMessage": "Invalid entry, please try again"
+  },
+  {
+    "code": "576",
+    "description": "Fleet — message error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Fleet: message error",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "577",
+    "description": "Fleet — invalid transaction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid transaction",
+    "cardholderMessage": "Transaction type not permitted"
+  },
+  {
+    "code": "578",
+    "description": "Visa OCT domestic single transaction velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Visa OCT domestic single transaction velocity exceeded",
+    "cardholderMessage": "Transaction limit exceeded"
+  },
+  {
+    "code": "579",
+    "description": "Visa OCT domestic daily velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Visa OCT domestic daily velocity exceeded",
+    "cardholderMessage": "Daily transaction limit exceeded"
+  },
+  {
+    "code": "580",
+    "description": "Visa OCT domestic monthly velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Visa OCT domestic monthly velocity exceeded",
+    "cardholderMessage": "Monthly transaction limit exceeded"
+  },
+  {
+    "code": "581",
+    "description": "Visa OCT cross-border single transaction velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Visa OCT cross-border single transaction velocity exceeded",
+    "cardholderMessage": "Transaction limit exceeded"
+  },
+  {
+    "code": "582",
+    "description": "Visa OCT cross-border daily velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Visa OCT cross-border daily velocity exceeded",
+    "cardholderMessage": "Daily transaction limit exceeded"
+  },
+  {
+    "code": "583",
+    "description": "Visa OCT cross-border monthly velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Visa OCT cross-border monthly velocity exceeded",
+    "cardholderMessage": "Monthly transaction limit exceeded"
+  },
+  {
+    "code": "584",
+    "description": "MC MoneySend domestic single transaction velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "MC MoneySend domestic single transaction velocity exceeded",
+    "cardholderMessage": "Transaction limit exceeded"
+  },
+  {
+    "code": "585",
+    "description": "MC MoneySend domestic daily velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "MC MoneySend domestic daily velocity exceeded",
+    "cardholderMessage": "Daily transaction limit exceeded"
+  },
+  {
+    "code": "586",
+    "description": "MC MoneySend domestic monthly velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "MC MoneySend domestic monthly velocity exceeded",
+    "cardholderMessage": "Monthly transaction limit exceeded"
+  },
+  {
+    "code": "587",
+    "description": "MC MoneySend cross-border single transaction velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "MC MoneySend cross-border single transaction velocity exceeded",
+    "cardholderMessage": "Transaction limit exceeded"
+  },
+  {
+    "code": "588",
+    "description": "MC MoneySend cross-border daily velocity exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "MC MoneySend cross-border daily velocity exceeded",
+    "cardholderMessage": "Daily transaction limit exceeded"
+  },
+  {
+    "code": "601",
+    "description": "Invalid Batch Number",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid batch number",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "602",
+    "description": "No Open Batch",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "No open batch",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "603",
+    "description": "Close Unavailable",
+    "category": "error",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Batch close unavailable",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "604",
+    "description": "Close Not Valid",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Batch close not valid",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "701",
+    "description": "Approved EMV Key Load",
+    "category": "approved",
+    "retryable": false,
+    "action": "display_approved",
+    "merchantMessage": "EMV key load approved",
+    "cardholderMessage": "Approved"
+  },
+  {
+    "code": "702",
+    "description": "EMV Key Download Error",
+    "category": "error",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "EMV key download error",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "703",
+    "description": "Approved EMV Key Load more key load data pending",
+    "category": "approved",
+    "retryable": false,
+    "action": "display_approved",
+    "merchantMessage": "EMV key load approved — more data pending",
+    "cardholderMessage": "Approved"
+  },
+  {
+    "code": "704",
+    "description": "Pick Up Card",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Pick up card",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "708",
+    "description": "Honor With Authentication",
+    "category": "declined",
+    "retryable": false,
+    "action": "contact_issuer",
+    "merchantMessage": "Honor with authentication — call issuer",
+    "cardholderMessage": "Additional verification required"
+  },
+  {
+    "code": "721",
+    "description": "Invalid ZIP Code",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid ZIP code (check)",
+    "cardholderMessage": "Invalid ZIP code"
+  },
+  {
+    "code": "722",
+    "description": "Invalid value in field/Host Totals Declined",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid value in field / host totals declined",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "723",
+    "description": "Drivers License Required",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Driver's license required (check)",
+    "cardholderMessage": "Driver's license required"
+  },
+  {
+    "code": "724",
+    "description": "Referred Not Active",
+    "category": "declined",
+    "retryable": false,
+    "action": "contact_issuer",
+    "merchantMessage": "Referred — not active",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "726",
+    "description": "Unable to Locate Record",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Unable to locate record (check)",
+    "cardholderMessage": "Record not found"
+  },
+  {
+    "code": "727",
+    "description": "Refer Call Authorization",
+    "category": "declined",
+    "retryable": false,
+    "action": "contact_issuer",
+    "merchantMessage": "Refer — call for authorization",
+    "cardholderMessage": "Please contact your card issuer"
+  },
+  {
+    "code": "728",
+    "description": "Referred Skip Trace Info",
+    "category": "declined",
+    "retryable": false,
+    "action": "contact_issuer",
+    "merchantMessage": "Referred — skip trace info",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "729",
+    "description": "Hard Negative Info",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Hard negative info on file (check)",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "731",
+    "description": "Rejected Lost/Stolen Checks",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Rejected — lost/stolen checks",
+    "cardholderMessage": "Transaction declined"
+  },
+  {
+    "code": "740",
+    "description": "Totals Unavailable",
+    "category": "error",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Totals unavailable",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "767",
+    "description": "Hard Capture Pick Up",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Hard capture — pick up card",
+    "cardholderMessage": "Transaction declined, please contact your card issuer"
+  },
+  {
+    "code": "770",
+    "description": "Valid account but amount not supported",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Valid account but amount not supported",
+    "cardholderMessage": "Amount not supported for this account"
+  },
+  {
+    "code": "771",
+    "description": "Amount Too Large",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Amount too large",
+    "cardholderMessage": "Amount exceeds maximum allowed"
+  },
+  {
+    "code": "772",
+    "description": "Duplicate Return",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Duplicate return",
+    "cardholderMessage": "Refund already processed"
+  },
+  {
+    "code": "773",
+    "description": "Unsuccessful",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Transaction unsuccessful",
+    "cardholderMessage": "Transaction unsuccessful"
+  },
+  {
+    "code": "774",
+    "description": "Duplicate Reversal",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Duplicate reversal",
+    "cardholderMessage": "Reversal already processed"
+  },
+  {
+    "code": "775",
+    "description": "Subsystem Unavailable",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Subsystem unavailable",
+    "cardholderMessage": "Please try again"
+  },
+  {
+    "code": "776",
+    "description": "Duplicate Completion",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Duplicate completion",
+    "cardholderMessage": "Transaction already completed"
+  },
+  {
+    "code": "782",
+    "description": "Count Exceeds Limit",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Count exceeds limit",
+    "cardholderMessage": "Transaction count limit exceeded"
+  },
+  {
+    "code": "785",
+    "description": "No reason to decline (treat as approval for $0 verification and Online Refund)",
+    "category": "approved",
+    "retryable": false,
+    "action": "display_approved",
+    "merchantMessage": "Approved — no reason to decline",
+    "cardholderMessage": "Approved"
+  },
+  {
+    "code": "790",
+    "description": "Not approved do not resubmit (recurring)",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Not approved — do not resubmit (recurring)",
+    "cardholderMessage": "Transaction declined, please update payment method"
+  },
+  {
+    "code": "791",
+    "description": "Not approved stop recurring",
+    "category": "declined",
+    "retryable": false,
+    "action": "do_not_retry",
+    "merchantMessage": "Not approved — stop recurring payments",
+    "cardholderMessage": "Recurring payment cancelled"
+  },
+  {
+    "code": "792",
+    "description": "See attendant",
+    "category": "declined",
+    "retryable": false,
+    "action": "contact_issuer",
+    "merchantMessage": "See attendant",
+    "cardholderMessage": "Please see attendant for assistance"
+  },
+  {
+    "code": "800",
+    "description": "Deferred auth not cancelled",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Deferred authorization not cancelled",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "801",
+    "description": "Fleet — velocity limit exceeded (daily amount)",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: daily amount velocity limit exceeded",
+    "cardholderMessage": "Daily spending limit exceeded"
+  },
+  {
+    "code": "802",
+    "description": "Fleet — velocity limit exceeded (daily count)",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: daily count velocity limit exceeded",
+    "cardholderMessage": "Daily transaction count exceeded"
+  },
+  {
+    "code": "803",
+    "description": "Fleet — velocity limit exceeded (weekly amount)",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: weekly amount velocity limit exceeded",
+    "cardholderMessage": "Weekly spending limit exceeded"
+  },
+  {
+    "code": "804",
+    "description": "Fleet — velocity limit exceeded (weekly count)",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: weekly count velocity limit exceeded",
+    "cardholderMessage": "Weekly transaction count exceeded"
+  },
+  {
+    "code": "805",
+    "description": "Fleet — velocity limit exceeded (monthly amount)",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: monthly amount velocity limit exceeded",
+    "cardholderMessage": "Monthly spending limit exceeded"
+  },
+  {
+    "code": "806",
+    "description": "Authorization ID needed",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Authorization ID needed",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "807",
+    "description": "Fleet — velocity limit exceeded (monthly count)",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: monthly count velocity limit exceeded",
+    "cardholderMessage": "Monthly transaction count exceeded"
+  },
+  {
+    "code": "808",
+    "description": "Fleet — velocity limit exceeded (cycle amount)",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: cycle amount velocity limit exceeded",
+    "cardholderMessage": "Cycle spending limit exceeded"
+  },
+  {
+    "code": "809",
+    "description": "Fleet — velocity limit exceeded (cycle count)",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: cycle count velocity limit exceeded",
+    "cardholderMessage": "Cycle transaction count exceeded"
+  },
+  {
+    "code": "810",
+    "description": "Fleet — single transaction amount exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: single transaction amount exceeded",
+    "cardholderMessage": "Transaction amount exceeds limit"
+  },
+  {
+    "code": "811",
+    "description": "Fleet — card not active",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: card not active",
+    "cardholderMessage": "Card not active"
+  },
+  {
+    "code": "812",
+    "description": "Fleet — card suspended",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: card suspended",
+    "cardholderMessage": "Card suspended"
+  },
+  {
+    "code": "813",
+    "description": "Fleet — invalid merchant",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Fleet: invalid merchant",
+    "cardholderMessage": "Not authorized at this location"
+  },
+  {
+    "code": "814",
+    "description": "Fleet — invalid account",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid account",
+    "cardholderMessage": "Invalid account"
+  },
+  {
+    "code": "815",
+    "description": "Fleet — invalid product",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid product",
+    "cardholderMessage": "Product not authorized"
+  },
+  {
+    "code": "816",
+    "description": "Fleet — invalid driver number",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid driver number",
+    "cardholderMessage": "Invalid driver number"
+  },
+  {
+    "code": "817",
+    "description": "Fleet — invalid vehicle number",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid vehicle number",
+    "cardholderMessage": "Invalid vehicle number"
+  },
+  {
+    "code": "818",
+    "description": "Fleet — invalid department",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: invalid department",
+    "cardholderMessage": "Invalid department"
+  },
+  {
+    "code": "819",
+    "description": "Fleet — MCC restriction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: MCC restriction",
+    "cardholderMessage": "Transaction not permitted at this merchant"
+  },
+  {
+    "code": "820",
+    "description": "Fleet — invalid PIN",
+    "category": "declined",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Fleet: invalid PIN",
+    "cardholderMessage": "Incorrect PIN, please try again"
+  },
+  {
+    "code": "821",
+    "description": "Fleet — time of day restriction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: time of day restriction",
+    "cardholderMessage": "Transaction not permitted at this time"
+  },
+  {
+    "code": "822",
+    "description": "Fleet — day of week restriction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: day of week restriction",
+    "cardholderMessage": "Transaction not permitted today"
+  },
+  {
+    "code": "823",
+    "description": "Fleet — fuel type restriction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: fuel type restriction",
+    "cardholderMessage": "Fuel type not authorized"
+  },
+  {
+    "code": "824",
+    "description": "Fleet — service type restriction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: service type restriction",
+    "cardholderMessage": "Service type not authorized"
+  },
+  {
+    "code": "825",
+    "description": "Fleet — geographic restriction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: geographic restriction",
+    "cardholderMessage": "Transaction not permitted in this area"
+  },
+  {
+    "code": "826",
+    "description": "Signature required",
+    "category": "info",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Signature required",
+    "cardholderMessage": "Please provide signature"
+  },
+  {
+    "code": "827",
+    "description": "Velocity exception error pay inside",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Velocity exception — pay inside",
+    "cardholderMessage": "Please pay inside"
+  },
+  {
+    "code": "828",
+    "description": "Fleet — gallons per transaction exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: gallons per transaction exceeded",
+    "cardholderMessage": "Fuel volume limit exceeded"
+  },
+  {
+    "code": "829",
+    "description": "Fleet — gallons per day exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: gallons per day exceeded",
+    "cardholderMessage": "Daily fuel volume limit exceeded"
+  },
+  {
+    "code": "830",
+    "description": "Fleet — gallons per week exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: gallons per week exceeded",
+    "cardholderMessage": "Weekly fuel volume limit exceeded"
+  },
+  {
+    "code": "831",
+    "description": "Fleet — gallons per month exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: gallons per month exceeded",
+    "cardholderMessage": "Monthly fuel volume limit exceeded"
+  },
+  {
+    "code": "832",
+    "description": "Fleet — gallons per cycle exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: gallons per cycle exceeded",
+    "cardholderMessage": "Cycle fuel volume limit exceeded"
+  },
+  {
+    "code": "833",
+    "description": "Fleet — dollar per transaction exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: dollar per transaction exceeded",
+    "cardholderMessage": "Transaction amount exceeded"
+  },
+  {
+    "code": "834",
+    "description": "Fleet — dollar per day exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: dollar per day exceeded",
+    "cardholderMessage": "Daily spending limit exceeded"
+  },
+  {
+    "code": "835",
+    "description": "Fleet — dollar per week exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: dollar per week exceeded",
+    "cardholderMessage": "Weekly spending limit exceeded"
+  },
+  {
+    "code": "836",
+    "description": "Fleet — dollar per month exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: dollar per month exceeded",
+    "cardholderMessage": "Monthly spending limit exceeded"
+  },
+  {
+    "code": "837",
+    "description": "Fleet — dollar per cycle exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: dollar per cycle exceeded",
+    "cardholderMessage": "Cycle spending limit exceeded"
+  },
+  {
+    "code": "838",
+    "description": "Fleet — transactions per day exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: transactions per day exceeded",
+    "cardholderMessage": "Daily transaction count exceeded"
+  },
+  {
+    "code": "839",
+    "description": "Fleet — transactions per week exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: transactions per week exceeded",
+    "cardholderMessage": "Weekly transaction count exceeded"
+  },
+  {
+    "code": "840",
+    "description": "Fleet — transactions per month exceeded",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Fleet: transactions per month exceeded",
+    "cardholderMessage": "Monthly transaction count exceeded"
+  },
+  {
+    "code": "902",
+    "description": "Invalid transaction",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid transaction",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "903",
+    "description": "Invalid Reversal already settled",
+    "category": "error",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Invalid reversal — already settled",
+    "cardholderMessage": "Transaction already settled, cannot reverse"
+  },
+  {
+    "code": "904",
+    "description": "Format error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Format error in request",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "905",
+    "description": "Unsupported message",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Unsupported message type",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "906",
+    "description": "System Error",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "System error",
+    "cardholderMessage": "System error, please try again"
+  },
+  {
+    "code": "907",
+    "description": "Card issuer or switch inoperative",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Card issuer or switch inoperative",
+    "cardholderMessage": "Please try again later"
+  },
+  {
+    "code": "908",
+    "description": "Transaction destination not found",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Transaction destination not found",
+    "cardholderMessage": "Transaction cannot be routed"
+  },
+  {
+    "code": "909",
+    "description": "System malfunction or timeout",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "System malfunction or timeout — retry",
+    "cardholderMessage": "Please try again"
+  },
+  {
+    "code": "911",
+    "description": "Card issuer timed out",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Card issuer timed out — retry",
+    "cardholderMessage": "Please try again"
+  },
+  {
+    "code": "913",
+    "description": "Duplicate transaction",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Duplicate transaction detected",
+    "cardholderMessage": "Duplicate transaction"
+  },
+  {
+    "code": "914",
+    "description": "Void unable to process settlement occurred",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Void failed — settlement already occurred",
+    "cardholderMessage": "Void not available, transaction already settled"
+  },
+  {
+    "code": "915",
+    "description": "Timeout Reversal not supported resend original",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Timeout reversal not supported — resend original",
+    "cardholderMessage": "Please try again"
+  },
+  {
+    "code": "916",
+    "description": "Void unable to process original auth not found",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Void failed — original authorization not found",
+    "cardholderMessage": "Original transaction not found"
+  },
+  {
+    "code": "920",
+    "description": "Security H/W or S/W error try again",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Security hardware/software error — retry",
+    "cardholderMessage": "Please try again"
+  },
+  {
+    "code": "921",
+    "description": "Security H/W or S/W error no action",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Security hardware/software error — contact support",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "923",
+    "description": "Request in progress",
+    "category": "system",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Request already in progress",
+    "cardholderMessage": "Transaction in progress, please wait"
+  },
+  {
+    "code": "924",
+    "description": "Limit check failed",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Limit check failed",
+    "cardholderMessage": "Transaction failed"
+  },
+  {
+    "code": "940",
+    "description": "Error",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "General error",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "941",
+    "description": "Invalid issuer",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid issuer",
+    "cardholderMessage": "Transaction cannot be processed"
+  },
+  {
+    "code": "942",
+    "description": "Customer cancellation",
+    "category": "info",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "Customer cancelled transaction",
+    "cardholderMessage": "Transaction cancelled"
+  },
+  {
+    "code": "944",
+    "description": "Invalid response",
+    "category": "error",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Invalid response received",
+    "cardholderMessage": "Transaction failed, please try again"
+  },
+  {
+    "code": "950",
+    "description": "Violation of business arrangement",
+    "category": "declined",
+    "retryable": false,
+    "action": "call_support",
+    "merchantMessage": "Violation of business arrangement",
+    "cardholderMessage": "Transaction not permitted"
+  },
+  {
+    "code": "954",
+    "description": "CCV failed",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "CCV verification failed",
+    "cardholderMessage": "Card verification failed"
+  },
+  {
+    "code": "958",
+    "description": "CCV2 failed",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "CCV2 verification failed",
+    "cardholderMessage": "Card security code verification failed"
+  },
+  {
+    "code": "959",
+    "description": "CAV failed",
+    "category": "declined",
+    "retryable": false,
+    "action": "display_declined",
+    "merchantMessage": "CAV verification failed",
+    "cardholderMessage": "Card verification failed"
+  },
+  {
+    "code": "963",
+    "description": "Acquirer channel unavailable",
+    "category": "system",
+    "retryable": true,
+    "action": "retry",
+    "merchantMessage": "Acquirer channel unavailable",
+    "cardholderMessage": "Please try again later"
+  }
+]

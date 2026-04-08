@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><wsdl:definitions name="rcService" targetNamespace="http://securetransport.dw/rcservice/soap" xmlns="http://securetransport.dw/rcservice/soap" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<wsdl:types>
+		<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://securetransport.dw/rcservice/soap" xmlns:target="http://securetransport.dw/rcservice/soap">
+
+			<xs:complexType name="ReqClientIDType">
+				<xs:sequence>
+					<xs:element name="DID" type="xs:string"/>
+					<xs:element name="App" type="xs:string"/>
+					<xs:element name="Auth" type="xs:string"/>
+					<xs:element name="ClientRef" type="xs:string"/>
+				</xs:sequence>
+			</xs:complexType>
+
+			<xs:complexType name="PayloadType">
+				<xs:simpleContent>
+					<xs:extension base="xs:string">
+						<xs:attribute name="Encoding">
+							<xs:simpleType>
+								<xs:restriction base="xs:string">
+									<xs:enumeration value="xml_escape"/>
+									<xs:enumeration value="cdata"/>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:attribute>
+					</xs:extension>
+				</xs:simpleContent>
+			</xs:complexType>
+
+			<xs:complexType name="RespClientIDType">
+				<xs:sequence>
+					<xs:element name="DID" type="xs:string"/>
+					<xs:element name="ClientRef" type="xs:string"/>
+				</xs:sequence>
+			</xs:complexType>
+
+			<xs:complexType name="StatusType">
+				<xs:simpleContent>
+					<xs:extension base="xs:string">
+						<xs:attribute name="StatusCode" type="xs:string" use="required"/>
+					</xs:extension>
+				</xs:simpleContent>
+			</xs:complexType>
+
+			<xs:complexType name="TransactionType">
+				<xs:sequence>
+					<xs:element name="ServiceID" type="xs:string"/>
+					<xs:element name="Payload" type="target:PayloadType"/>
+				</xs:sequence>
+			</xs:complexType>
+
+			<xs:complexType name="TransactionResponseType">
+				<xs:sequence>
+					<xs:element name="ReturnCode" type="xs:string"/>
+					<xs:element minOccurs="0" name="Payload" type="target:PayloadType"/>
+				</xs:sequence>
+			</xs:complexType>
+
+			<xs:complexType name="RequestType">
+				<xs:sequence>
+					<xs:element name="ReqClientID" type="target:ReqClientIDType"/>
+					<xs:element name="Transaction" type="target:TransactionType"/>
+
+				</xs:sequence>
+				<xs:attribute fixed="3" name="Version" type="xs:string" use="required"/>
+				<xs:attribute name="ClientTimeout"> <!-- unit: second -->
+					<xs:simpleType>
+						<xs:restriction base="xs:integer">
+							<xs:minExclusive value="0"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:attribute>
+			</xs:complexType>
+
+			<xs:complexType name="ResponseType">
+				<xs:sequence>
+					<xs:element name="RespClientID" type="target:RespClientIDType"/>
+					<xs:element name="Status" type="target:StatusType"/>
+					<xs:element minOccurs="0" name="TransactionResponse" type="target:TransactionResponseType"/>
+				</xs:sequence>
+				<xs:attribute fixed="3" name="Version" type="xs:string" use="required"/>
+			</xs:complexType>
+
+			<xs:element name="Transaction" type="target:TransactionType"/>
+			<xs:element name="TransactionResponse" type="target:TransactionResponseType"/>
+			<xs:element name="Request" type="target:RequestType"/>
+			<xs:element name="Response" type="target:ResponseType"/>
+
+		</xs:schema>
+
+	</wsdl:types>
+
+	<wsdl:message name="rcRequestMsg">
+		<wsdl:part element="Request" name="body"/>
+	</wsdl:message>
+	<wsdl:message name="rcResponseMsg">
+		<wsdl:part element="Response" name="body"/>
+	</wsdl:message>
+
+	<wsdl:portType name="rcPortType">
+		<wsdl:operation name="rcTransaction">
+			<wsdl:input message="rcRequestMsg" name="rcRequest"/>
+			<wsdl:output message="rcResponseMsg" name="rcResponse"/>
+		</wsdl:operation>
+	</wsdl:portType>
+
+	<wsdl:binding name="rcSoapBinding" type="rcPortType">
+		<soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+		<wsdl:operation name="rcTransaction">
+			<soap:operation soapAction="http://securetransport.dw/rcservice"/>
+			<wsdl:input name="rcRequest">
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output name="rcResponse">
+				<soap:body use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+	</wsdl:binding>
+
+	<wsdl:service name="rcService">
+		<wsdl:port binding="rcSoapBinding" name="rcServicePort">
+			<soap:address location="https://stg.dw.us.fdcnet.biz/rc"/>
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>

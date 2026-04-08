@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+         elementFormDefault="qualified"
+         attributeFormDefault="unqualified">
+
+      <xsd:complexType name="RequestType">
+        <xsd:sequence>
+            <xsd:element name="ReqClientID"
+                type="ReqClientIDType" />
+            <xsd:choice>
+                <xsd:element name="Registration"
+                    type="RegistrationType">
+                </xsd:element>
+                <xsd:element name="Activation"
+                    type="ActivationType">
+                </xsd:element>
+            </xsd:choice>
+        </xsd:sequence>
+        <xsd:attribute name="Version" type="VersionType" fixed="3" use="required"></xsd:attribute>
+        <xsd:attribute name="ClientTimeout" type="ClientTimeoutType"></xsd:attribute>
+      </xsd:complexType>
+      <xsd:complexType  name="ResponseType">
+        <xsd:sequence>
+            <xsd:element name="RespClientID" type="RespClientIDType" />
+            <xsd:element name="Status" type="StatusType"></xsd:element>
+            <xsd:choice minOccurs="0">
+                <xsd:element name="RegistrationResponse"
+                    type="RegistrationResponseType">
+                </xsd:element>
+                <xsd:element name="ActivationResponse"
+                    type="ActivationResponseType">
+                </xsd:element>
+            </xsd:choice>
+        </xsd:sequence>
+        <xsd:attribute name="Version" type="VersionType" fixed="3" use="required"></xsd:attribute>
+      </xsd:complexType>
+
+      <xsd:simpleType name="VersionType">
+          <xsd:restriction base="xsd:string">
+          </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="ClientTimeoutType">
+          <xsd:restriction base="xsd:string"></xsd:restriction>
+      </xsd:simpleType>
+
+<xsd:complexType name="ReqClientIDType">
+          <xsd:sequence>
+              <xsd:element name="DID" type="DIDType"></xsd:element>
+              <xsd:element name="App" type="AppType"></xsd:element>
+              <xsd:element name="Auth" type="AuthType"></xsd:element>
+              <xsd:element name="ClientRef" type="ClientRefType"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="RespClientIDType">
+          <xsd:sequence>
+              <xsd:element name="DID" type="DIDType"></xsd:element>
+              <xsd:element name="ClientRef" type="ClientRefType"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="StatusType">
+          <xsd:simpleContent>
+              <xsd:extension base="xsd:string">
+                  <xsd:attribute name="StatusCode"
+                      type="StatusCodeType" use="required">
+                  </xsd:attribute>
+              </xsd:extension>
+          </xsd:simpleContent>
+      </xsd:complexType>
+
+      <xsd:simpleType name="StatusCodeType">
+          <xsd:restriction base="xsd:string">
+           <xsd:enumeration value="OK"></xsd:enumeration>
+           <xsd:enumeration value="AuthenticationError"></xsd:enumeration>
+           <xsd:enumeration value="UnknownServiceID"></xsd:enumeration>
+           <xsd:enumeration value="Timeout"></xsd:enumeration>
+           <xsd:enumeration value="XMLError"></xsd:enumeration>
+           <xsd:enumeration value="OtherError"></xsd:enumeration>
+           <xsd:enumeration value="AccessDenied"></xsd:enumeration>
+           <xsd:enumeration value="InvalidMerchant"></xsd:enumeration>
+           <xsd:enumeration value="Failed"></xsd:enumeration>
+           <xsd:enumeration value="Duplicated"></xsd:enumeration>
+           <xsd:enumeration value="Retry"></xsd:enumeration>
+           <xsd:enumeration value="NotFound"></xsd:enumeration>
+           <xsd:enumeration value="SOAPError"></xsd:enumeration>
+           <xsd:enumeration value="InternalError"></xsd:enumeration>
+          </xsd:restriction>
+      </xsd:simpleType>
+
+<xsd:complexType name="RegistrationType">
+          <xsd:sequence>
+             <xsd:element name="ServiceID" type="ServiceIDType"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:simpleType name="ServiceIDType">
+          <xsd:restriction base="xsd:string"></xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:complexType name="RegistrationResponseType">
+          <xsd:sequence>
+              <xsd:element name="DID" type="DIDType" minOccurs="0" maxOccurs="1"></xsd:element>
+              <xsd:element name="URL" type="URLType" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ActivationType">
+          <xsd:sequence>
+              <xsd:element name="ServiceID" type="ServiceIDType"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ActivationResponseType">
+      </xsd:complexType>
+
+      <xsd:simpleType name="DIDType">
+          <xsd:restriction base="xsd:string"></xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="AppType">
+          <xsd:restriction base="xsd:string"></xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="AuthType">
+          <xsd:restriction base="xsd:string"></xsd:restriction>
+      </xsd:simpleType>
+
+     <xsd:simpleType name="ClientRefType">
+          <xsd:restriction base="xsd:string"></xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="URLType">
+          <xsd:restriction base="xsd:string"></xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:element name="Request" type="RequestType"></xsd:element>
+      <xsd:element name="Response" type="ResponseType"></xsd:element>
+
+</xsd:schema>

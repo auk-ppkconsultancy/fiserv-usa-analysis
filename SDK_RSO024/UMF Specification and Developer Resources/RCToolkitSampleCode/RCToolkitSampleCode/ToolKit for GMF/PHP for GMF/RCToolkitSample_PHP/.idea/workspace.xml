@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="2a1ba862-1b52-462f-a184-525080c1e906" name="Default Changelist" comment="" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ComposerSettings">
+    <execution>
+      <executable />
+    </execution>
+  </component>
+  <component name="PhpWorkspaceProjectConfiguration" interpreter_name="PHP" />
+  <component name="ProjectId" id="1PTYST4SCCqy18b6032q64LZANL" />
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="C:/JavaTool/PHP7.3/php.exe" />
+    <property name="settings.editor.selected.configurable" value="preferences.externalResources" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager" selected="PHP Script.Credit_Sale_HTTP.php">
+    <configuration name="Credit_Sale_SOAP.php" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/RCToolkitSample_PHP/Credit_Sale_SOAP.php" useBuiltInWebServerPort="true">
+      <method v="2" />
+    </configuration>
+    <configuration name="Credit_Sale_TCP.php" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/RCToolkitSample_PHP/Credit_Sale_TCP.php" useBuiltInWebServerPort="true">
+      <method v="2" />
+    </configuration>
+    <configuration name="Debit_Sale_HTTP.php" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/RCToolkitSample_PHP/Debit_Sale_HTTP.php" useBuiltInWebServerPort="true">
+      <method v="2" />
+    </configuration>
+    <configuration name="Credit_Sale_HTTP.php" type="PhpLocalRunConfigurationType" factoryName="PHP Console" temporary="true" path="$PROJECT_DIR$/Credit_Sale_HTTP.php">
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="PHP Script.Credit_Sale_HTTP.php" />
+        <item itemvalue="JavaScript Debug.Credit_Sale_TCP.php" />
+        <item itemvalue="JavaScript Debug.Debit_Sale_HTTP.php" />
+        <item itemvalue="JavaScript Debug.Credit_Sale_SOAP.php" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="2a1ba862-1b52-462f-a184-525080c1e906" name="Default Changelist" comment="" />
+      <created>1565899553047</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1565899553047</updated>
+      <workItem from="1565899555495" duration="800000" />
+      <workItem from="1565960437943" duration="587000" />
+      <workItem from="1565970951092" duration="1673000" />
+      <workItem from="1565979026783" duration="2015000" />
+      <workItem from="1565984182311" duration="355000" />
+      <workItem from="1565984551048" duration="212000" />
+      <workItem from="1565984777490" duration="823000" />
+      <workItem from="1565985614915" duration="46000" />
+      <workItem from="1565985677247" duration="1458000" />
+      <workItem from="1565987161903" duration="125000" />
+      <workItem from="1580395109572" duration="986000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="php">
+          <url>file://$PROJECT_DIR$/Credit_Sale_HTTP.php</url>
+          <line>42</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="php">
+          <url>file://$PROJECT_DIR$/Credit_Sale_HTTP.php</url>
+          <line>51</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

@@ -1,0 +1,204 @@
+<!-- -*-mode: xml-*- -->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://securetransport.dw/rcservice/xml"
+    xmlns:target="http://securetransport.dw/rcservice/xml"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+>
+
+    <xs:complexType name="ReqClientIDType">
+        <xs:sequence>
+            <xs:element name="DID" type="xs:string" />
+            <xs:element name="App" type="xs:string" />
+            <xs:element name="Auth" type="xs:string" />
+            <xs:element name="ClientRef" type="xs:string" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PayloadType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="Encoding">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="xml_escape" />
+                            <xs:enumeration value="cdata" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:attribute>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="RespClientIDType">
+        <xs:sequence>
+            <xs:element name="DID" type="xs:string" />
+            <xs:element name="ClientRef" type="xs:string" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="StatusType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="StatusCode" type="xs:string" use="required" />
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name="ServiceIDType">
+        <xs:restriction base="xs:string"></xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="SessionContextType">
+        <xs:restriction base="xs:string"></xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ReturnCodeType">
+        <xs:restriction base="xs:string"></xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="TransactionType">
+        <xs:sequence>
+            <xs:element name="ServiceID" type="target:ServiceIDType" />
+            <xs:element name="Payload" type="target:PayloadType" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TransactionResponseType">
+        <xs:sequence>
+            <xs:element name="ReturnCode" type="target:ReturnCodeType" />
+            <xs:element name="Payload" type="target:PayloadType"
+                minOccurs="0" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="InitiateSessionType">
+        <xs:sequence>
+            <xs:element name="ServiceID"
+                type="target:ServiceIDType">
+            </xs:element>
+            <xs:element name="Payload"
+                type="target:PayloadType" minOccurs="0">
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="InitiateSessionResponseType">
+        <xs:sequence>
+            <xs:element name="SessionContext"
+                type="target:SessionContextType">
+            </xs:element>
+            <xs:element name="ReturnCode"
+                type="target:ReturnCodeType">
+            </xs:element>
+            <xs:element name="Payload"
+                type="target:PayloadType" minOccurs="0">
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SessionTransactionType">
+        <xs:sequence>
+            <xs:element name="SessionContext"
+                type="target:SessionContextType">
+            </xs:element>
+            <xs:element name="Payload"
+                type="target:PayloadType">
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SessionTransactionResponseType">
+        <xs:sequence>
+            <xs:element name="ReturnCode"
+                type="target:ReturnCodeType">
+            </xs:element>
+            <xs:element name="Payload"
+                type="target:PayloadType">
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TerminateSessionType">
+        <xs:sequence>
+            <xs:element name="SessionContext"
+                type="target:SessionContextType">
+            </xs:element>
+            <xs:element name="Payload"
+                type="target:PayloadType" minOccurs="0">
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TerminateSessionResponseType">
+        <xs:sequence>
+            <xs:element name="ReturnCode"
+                type="target:ReturnCodeType">
+            </xs:element>
+            <xs:element name="Payload"
+                type="target:PayloadType" minOccurs="0">
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="RequestType">
+        <xs:sequence>
+            <xs:element name="ReqClientID"
+                type="target:ReqClientIDType" />
+            <xs:choice>
+                <xs:element name="Transaction"
+                    type="target:TransactionType">
+                </xs:element>
+                <xs:element name="InitiateSession"
+                    type="target:InitiateSessionType">
+                </xs:element>
+                <xs:element name="SessionTransaction"
+                    type="target:SessionTransactionType">
+                </xs:element>
+                <xs:element name="TerminateSession"
+                    type="target:TerminateSessionType">
+                </xs:element>
+            </xs:choice>
+        </xs:sequence>
+        <xs:attribute name="Version" type="xs:string" use="required"
+            fixed="3" />
+        <xs:attribute name="ClientTimeout"> <!-- unit: second -->
+            <xs:simpleType>
+                <xs:restriction base="xs:integer">
+                    <xs:minExclusive value="0" />
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="ResponseType">
+        <xs:sequence>
+            <xs:element name="RespClientID"
+                type="target:RespClientIDType" />
+            <xs:element name="Status" type="target:StatusType" />
+            <xs:choice>
+                <xs:element name="TransactionResponse"
+                    type="target:TransactionResponseType" minOccurs="0">
+                </xs:element>
+                <xs:element name="InitiateSessionResponse"
+                    type="target:InitiateSessionResponseType" minOccurs="0">
+                </xs:element>
+                <xs:element name="SessionTransactionResponse"
+                    type="target:SessionTransactionResponseType" minOccurs="0">
+                </xs:element>
+                <xs:element name="TerminateSessionResponse"
+                    type="target:TerminateSessionResponseType" minOccurs="0">
+                </xs:element>
+            </xs:choice>
+        </xs:sequence>
+        <xs:attribute name="Version" type="xs:string" use="required"
+            fixed="3" />
+    </xs:complexType>
+
+    <xs:element name="Transaction" type="target:TransactionType" />
+    <xs:element name="TransactionResponse" type="target:TransactionResponseType" />
+    <xs:element name="Request" type="target:RequestType" />
+    <xs:element name="Response" type="target:ResponseType" />
+
+</xs:schema>
