@@ -1300,15 +1300,16 @@ Source: `Datawire Parameter Guidelines for Rapid Connect.pdf`, `Datawire Complia
 
 ---
 
-## POS Entry Mode Reference
+## POS Entry Mode Reference (verified against 2026-04-13 test script)
 
-| Code | Entry Method | Softpay Usage |
-|------|-------------|---------------|
-| 071 | Contactless EMV (chip data via NFC) | **Primary** -- standard contactless tap |
-| 901 | Contactless magnetic stripe | Fallback -- MSR data read via NFC |
-| 051 | Contact EMV chip | Not applicable (no chip reader on SoftPOS) |
-| 011 | Manual key entry | Not selected |
-| 801 | Swiped (magnetic stripe) | Selected in profile but not applicable to SoftPOS |
+The official `TestTransactions_RSO024.csv` uses **only two** POSEntryMode values across all 424 mandatory cases. Any other code returns `109 INVALID TERM` from the Fiserv sandbox because no TestCase row matches.
+
+| Code | Entry Method | Softpay Usage | Test cases |
+|------|-------------|---------------|------------|
+| `911` | Contactless (EMV + MSR path) | **Primary** — every SoftPOS contactless tap | 250 |
+| `901` | Swiped (track data) | Not used by SoftPOS (no MSR hardware) but still permitted by TPP | 173 |
+
+EMV contact entry mode was removed from the RSO024 Project Profile on 2026-04-13 and is no longer in scope.
 
 ---
 

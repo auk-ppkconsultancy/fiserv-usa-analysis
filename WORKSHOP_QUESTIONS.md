@@ -3,7 +3,7 @@
 **Project:** RSO024 — Softpay ApS  
 **Integration:** Rapid Connect v15.04, UMF XML over HTTPS via Datawire  
 **Current Status:** Development  
-**Prepared:** April 7, 2026  
+**Prepared:** April 7, 2026 (updated 2026-04-13 after Project Profile removed EMV contact entry and SDK was re-issued)  
 **Purpose:** Structured agenda for the technical alignment call between Softpay and Fiserv to resolve open questions from the integration analysis.
 
 ---
@@ -94,21 +94,30 @@ Questions are grouped by topic and ordered by what blocks development start firs
 - **Assumption:** Softpay will use a cloud HSM for production key storage and session key operations.
 - **Blocks:** Development
 
-### ~~Q2.6 — PIN encryption method preference~~ RESOLVED
+### Q2.6 — PIN encryption method: DUKPT vs Master Session Encryption (REOPENED 2026-04-13)
 
-- **Answer:** Softpay will use **Master Session Encryption** (selected in the RSO024 Project Profile). PIN encryption occurs on the Softpay backend using the session key obtained via `EncryptionKeyRequest`. PINGrp will contain `PINData` + `MSKeyID`.
+- **Question:** The RSO024 Project Profile selects **Master Session Encryption** (with TR-31 Key Block). However, **every PIN sample in the official 2026-04-13 test script** `TestTransactions_RSO024.csv` uses **DUKPT** — `PINGrp` carries `PINData` + `KeySerialNumData` (20-hex KSN, e.g. `F876543210A00420015F`). Zero occurrences of `MSKeyID` appear across the 424 test cases. Which mechanism is actually provisioned on TPP RSO024, and which should Softpay implement for cert and production?
+- **Context:** This discrepancy only surfaced when the test-script XMLs were parsed in full on 2026-04-13. Implementing the wrong mechanism will fail cert. The single `EncryptionKeyRequest` test case (MID `RCTST0000000065`) suggests MSE is at least exercised once, but all actual PIN Debit samples are DUKPT.
+- **Assumption:** Pending Fiserv confirmation. Softpay will not begin PIN Debit implementation until this is resolved.
+- **Blocks:** Development (PIN Debit)
 
 ### ~~Q2.7 — PIN block format~~ RESOLVED
 
 - **Answer:** **ISO Format 0** (ISO 9564-1). Confirmed by the UMF XSD: `PINData` is defined as `Len16HexString` (exactly 16 hex chars = 8 bytes). ISO Format 4 produces 32 hex chars and does not fit this field.
 
-### ~~Q2.8 — BDK provisioning for DUKPT~~ N/A
+### Q2.8 — BDK provisioning for DUKPT (REOPENED 2026-04-13 — depends on Q2.6)
 
-- **Answer:** Not applicable. Softpay will use Master Session Encryption, not DUKPT. No BDK provisioning required.
+- **Question:** If Fiserv confirms DUKPT is the correct PIN encryption mechanism for TPP RSO024, what is the BDK (Base Derivation Key) provisioning process for Softpay's SoftPOS fleet, and how are KSNs assigned/seeded to each device?
+- **Context:** The test script uses two specific KSNs (`F876543210A00420015F` and `F8765432108015200018`). These appear to be Fiserv-issued test KSNs for predefined test BDKs.
+- **Assumption:** Pending answer to Q2.6.
+- **Blocks:** Development (PIN Debit)
 
-### ~~Q2.9 — KSN counter management~~ N/A
+### Q2.9 — KSN counter management (REOPENED 2026-04-13 — depends on Q2.6)
 
-- **Answer:** Not applicable. Softpay will use Master Session Encryption, not DUKPT. No KSN counter management required.
+- **Question:** If DUKPT is used, what is the expected KSN counter lifecycle on a SoftPOS device — does the counter advance per PIN entry, per transaction, per session? What is the KSN counter rollover policy?
+- **Context:** Standard DUKPT advances KSN counter per transaction. Confirm this applies to Fiserv's implementation.
+- **Assumption:** Pending answer to Q2.6.
+- **Blocks:** Development (PIN Debit)
 
 ---
 
@@ -173,6 +182,20 @@ Questions are grouped by topic and ordered by what blocks development start firs
 - **Context:** In the Restaurant tipping workflow, the Completion (with tip) may be sent minutes or hours after the Authorization; Softpay needs to enforce any deadline in the app.
 - **Assumption:** Completions must be submitted before the daily settlement cut-off on the same day or within 7 days (per typical card brand rules).
 - **Blocks:** Development
+
+### Q4.6 — Two MID sets in play: Project Profile vs. test script (NEW 2026-04-13)
+
+- **Question:** The RSO024 Project Profile provisions MIDs `RCTST1000119068/69/70` (Restaurant / Retail / Supermarket). The official test script `TestTransactions_RSO024.csv` uses a completely different set: `RCTST1000120414` (MCC 5812) / `RCTST1000120415` (MCC 5399) / `RCTST1000120416` (MCC 5411), plus `RCTST0000000065` for the single `EncryptionKeyRequest` case. Which set is authoritative for cert? Can the Project-Profile MIDs be used with test-script payloads, or are the test-script MIDs the only ones the sandbox's TestCase matcher recognizes?
+- **Context:** Empirical probing on 2026-04-12 against the Project-Profile MIDs returned `109 INVALID TERM` with the recommendation *"TestCase not found. Please check the parameters: Currency=840, MCC=5812, Payment Type=Credit, Txn Type=Authorization, Amount=1.50, POS Entry Mode=000, Encryption Type=null, Token Type=null, Account Number=4017779995555556"*. The sandbox appears to validate each transaction against a TestCase row keyed on (MID-implied MCC, PymtType, TxnType, Amount, POSEntryMode, Encryption, Token, PAN). None of the probes match because they used arbitrary values.
+- **Assumption:** Softpay will send transactions using the **test-script MIDs** (`1000120414/15/16`) and byte-for-byte match one of the 424 official TestCase payloads until Fiserv clarifies.
+- **Blocks:** Development (all sandbox testing)
+
+### Q4.7 — Sandbox TestCase-matcher semantics (NEW 2026-04-13)
+
+- **Question:** Is the Fiserv sandbox a pure replay/matcher (the only transactions that receive approval are byte-for-byte replays of the 424 official TestCase rows), or does it evaluate a subset of fields (MCC + PymtType + TxnType + Amount + POSEntryMode + Encryption + Token + PAN) and approve any request whose tuple matches?
+- **Context:** The 109 INVALID TERM message lists a specific field set — implying that tuple is the key. Softpay needs this answer to decide whether cert development can vary STAN/RefNum/timestamps while keeping the other tuple fields fixed to a TestCase row, or whether the whole XML must match.
+- **Assumption:** Softpay will treat the listed tuple as the matching key and vary only volatile fields (STAN, RefNum, timestamps, ClientRef) to avoid collisions.
+- **Blocks:** Development (all sandbox testing)
 
 ---
 

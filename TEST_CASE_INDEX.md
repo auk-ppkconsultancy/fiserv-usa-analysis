@@ -1,7 +1,7 @@
 # Test Case Index & Certification Roadmap
 
 **Project:** RSO024 — Softpay by Softpay ApS  
-**Source:** `RSO024_Testscript_2026-04-07.xlsx`  
+**Source:** `RSO024_Testscript_2026-04-13.xlsx` + `TestTransactions_RSO024.csv` (2026-04-13 re-issue)  
 **Date:** April 2026
 
 ---
@@ -73,14 +73,17 @@ Test case IDs are 12-digit numbers (e.g., `200020170040`). IDs ending in `0010` 
 
 ### 2.3 Mandatory Tests: Industry Distribution
 
-| Industry | Count | MID |
-|---|---|---|
-| **Restaurant** | 23 | RCTST1000119068 |
-| **Retail/QSR** | 40 | RCTST1000119069 |
-| **Retail or Restaurant** | 173 | RCTST1000119068 or RCTST1000119069 |
-| **Supermarket** | 187 | RCTST1000119070 |
-| **Other/Unspecified** | 1 | — |
-| **Total** | **424** |  |
+Verified directly from `TestTransactions_RSO024.csv` — the test script references a different set of MIDs from the Project Profile.
+
+| Industry | MCC | Count | MID used in test XMLs |
+|---|---|---|---|
+| **Retail** | 5399 | 213 | RCTST1000120415 |
+| **Supermarket** | 5411 | 187 | RCTST1000120416 |
+| **Restaurant** | 5812 | 23 | RCTST1000120414 |
+| **EncryptionKeyRequest only** | — | 1 | RCTST0000000065 |
+| **Total** | — | **424** | — |
+
+> **Workshop ask:** The Project Profile lists MIDs `RCTST1000119068/69/70`, but the test script uses `RCTST1000120414/15/16`. Confirm which set is authoritative before cert runs.
 
 ---
 
@@ -209,15 +212,15 @@ Swiped tests cover MSR (Magnetic Stripe Read) scenarios. Even though Softpay is 
 - PIN Debit (swiped with PIN)
 - RefundType validation
 
-### 5.3 EMV Chip Read (0 mandatory, 12 non-mandatory)
+### 5.3 EMV Chip Read — No longer in scope
 
-EMV contact chip read tests exist only in the non-mandatory sheet, which aligns with SoftPOS having no physical chip reader.
+EMV contact entry was removed from the RSO024 Project Profile on 2026-04-13. The current test script contains no mandatory contact-chip test cases. SoftPOS has no physical chip reader, so this removal is correct and aligned.
 
 ---
 
 ## 6. Test Cases by Industry
 
-### 6.1 Restaurant (MID: RCTST1000119068) — 23 tests
+### 6.1 Restaurant (MID: RCTST1000120414, MCC 5812) — 23 tests
 
 | Card Brand | Auth | Completion | Refund | Total |
 |---|---|---|---|---|
@@ -229,24 +232,17 @@ EMV contact chip read tests exist only in the non-mandatory sheet, which aligns 
 
 **Restaurant-specific features:** Tipping (tip in Completion via `AddtlAmtGrp`), split checks.
 
-### 6.2 Retail/QSR (MID: RCTST1000119069) — 40 tests
+### 6.2 Retail (MID: RCTST1000120415, MCC 5399) — 213 tests
 
-| Card Brand | Auth | Completion | Refund | Total |
-|---|---|---|---|---|
-| Visa | 3 | 2 | 2 | 7 |
-| MasterCard | 2 | 2 | 3 | 7 |
-| Diners | 2 | 2 | — | 4 |
-| Discover | 3 | 1 | 4 | 8 |
-| Amex | 3 | 2 | 5 | 10 |
-| Other | 1 | — | 3 | 4 |
+The second-largest industry segment. Covers all card brands with extensive contactless and SoftPOS testing.
 
-### 6.3 Supermarket (MID: RCTST1000119070) — 187 tests
+### 6.3 Supermarket (MID: RCTST1000120416, MCC 5411) — 187 tests
 
 The largest industry segment, covering all card brands with extensive contactless and SoftPOS testing.
 
-### 6.4 Retail or Restaurant (MID: either 119068 or 119069) — 173 tests
+### 6.4 EncryptionKeyRequest (MID: RCTST0000000065) — 1 test
 
-Tests that can run on either Restaurant or Retail MID. The test description specifies which MID to use.
+A single `AdminRequest` test case exercises the `EncryptionKeyRequest` path used for Master Session Encryption.
 
 ---
 
@@ -478,7 +474,7 @@ The non-mandatory sheet contains 83 "Unit" tests. While not required for certifi
 
 ### Notable Non-Mandatory Tests
 
-- **EMV Chip Read (12 tests):** Contact chip tests exist only in non-mandatory. Since SoftPOS has no chip reader, these may be skipped unless EMV contact is required by certification.
+- **EMV Chip Read:** Contact-chip entry mode was removed from the RSO024 Project Profile on 2026-04-13. Non-mandatory contact-chip tests (if any) can be skipped.
 - **Decline test (resp=107):** One test expects `107` (Call for Authorization) — referral handling.
 - **Decline tests (resp=500):** Six decline scenarios across different card brands.
 
@@ -513,14 +509,25 @@ Reference: `Timeout_Reversal_Testing_QRG.pdf` in the SDK
 
 ## 12. MID Assignments by Industry
 
+**Project Profile MIDs** (as provided by Fiserv for dev / cert use):
+
 | Industry | MID | Test TIDs (Dev) | Cert TID |
 |---|---|---|---|
 | **Restaurant** | RCTST1000119068 | 002, 003 | 001 |
 | **Retail/QSR** | RCTST1000119069 | 002, 003 | 001 |
 | **Supermarket** | RCTST1000119070 | 002, 003 | 001 |
 
-**Important:** Test descriptions specify which MID to use. Always use the MID indicated in the test description, NOT a fixed MID.
+**Test-script MIDs** (actually embedded inside every `<MerchID>` element in `TestTransactions_RSO024.csv`):
+
+| Industry | MCC | MID | TID |
+|---|---|---|---|
+| Restaurant | 5812 | RCTST1000120414 | 00000001 |
+| Retail | 5399 | RCTST1000120415 | 00000001 |
+| Supermarket | 5411 | RCTST1000120416 | 00000001 |
+| EncryptionKeyRequest | — | RCTST0000000065 | 00000001 |
+
+**Important:** There are two different MID sets. Before cert runs, **confirm with Fiserv which MIDs the sandbox's TestCase matcher expects**. Early probing suggests the test-script MIDs (`1000120414/15/16`) are what the sandbox validates against — sending transactions for the Project Profile MIDs with any other parameters returns `109 INVALID TERM`.
 
 ---
 
-*This index was generated from `RSO024_Testscript_2026-04-07.xlsx` (April 7, 2026). All 424 mandatory and 83 non-mandatory test cases were parsed and categorized. The smoke test subset and execution strategy are recommendations based on Softpay's SoftPOS use case.*
+*This index was generated from `RSO024_Testscript_2026-04-13.xlsx` + `TestTransactions_RSO024.csv` (April 13, 2026 re-issue). All 424 mandatory test cases were parsed and categorized. The smoke test subset and execution strategy are recommendations based on Softpay's SoftPOS use case.*

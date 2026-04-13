@@ -3,7 +3,7 @@
 **Project:** Softpay SoftPOS - Fiserv USA Rapid Connect Integration  
 **Project ID (TPP ID):** RSO024  
 **Rapid Connect Version:** 15.04 (UMF v15.04.5, effective February 25, 2026)  
-**Date of Analysis:** April 7, 2026  
+**Date of Analysis:** April 13, 2026 (updated from April 7, 2026 after Project Profile removed EMV contact entry and re-issued SDK `RSO024_Testscript_2026-04-13.xlsx` / `UMF_RSO024_2026.04.13.pdf`)  
 **Prepared by:** Softpay Integration Team  
 
 ---
@@ -272,7 +272,7 @@ Each request/response is composed of **modular XML groups** in a defined sequenc
 | Terminal ID | `TermID` | an | 8 | Assigned by Fiserv |
 | Merchant ID | `MerchID` | an | max 16 | Assigned by Fiserv |
 | Merchant Category Code | `MerchCatCode` | N | 4 | MCC code |
-| POS Entry Mode | `POSEntryMode` | an | 3 | Entry method (e.g., `901` = contactless) |
+| POS Entry Mode | `POSEntryMode` | an | 3 | Entry method. **Test script uses only `911` (contactless) and `901` (swiped).** |
 | POS Condition Code | `POSCondCode` | N | 2 | Transaction condition |
 | Terminal Category Code | `TermCatCode` | N | 2 | Terminal type identifier |
 | Transaction Amount | `TxnAmt` | N | max 12 | Amount in minor units |
@@ -300,7 +300,7 @@ Question: Table 24 in the EMV Guide references test CVM limits. Does Fiserv prov
 | **PIN Debit** | Selected — significant for SoftPOS as online PIN on COTS device has MPoC implications; PIN encryption required |
 | **PINless POS Debit** | Selected — debit routing without PIN |
 
-**Important Note:** PIN Debit and PINless POS Debit are both selected. This means debit routing is enabled for cost optimization (Durbin compliance). PIN Debit requires implementation of `PINGrp` with PIN encryption via **Master Session Encryption** (selected in the project profile). Online PIN for contactless on a COTS/SoftPOS device has MPoC implications that must be clarified with Fiserv. PINless POS Debit provides debit routing without PIN entry.
+**Important Note:** PIN Debit and PINless POS Debit are both selected. This means debit routing is enabled for cost optimization (Durbin compliance). PIN Debit requires implementation of `PINGrp` with encrypted PIN. The Project Profile selects **Master Session Encryption**, but the official test script `TestTransactions_RSO024.csv` exclusively uses **DUKPT** (`KeySerialNumData`) — see §5.2 for the discrepancy and workshop question. Online PIN for contactless on a COTS/SoftPOS device has MPoC implications that must be clarified with Fiserv. PINless POS Debit provides debit routing without PIN entry.
 
 ### 2.3 Mobile/Digital Wallet Support
 
@@ -312,13 +312,22 @@ Question: Table 24 in the EMV Guide references test CVM limits. Does Fiserv prov
 
 ### 2.4 Entry Modes Selected
 
-| Entry Mode | Relevant POS Entry Mode Codes |
-|---|---|
-| **Swiped** | Magnetic stripe (not applicable for SoftPOS — no MSR reader) |
-| **Contactless** | NFC tap (POS Entry Mode 07/91 for contactless EMV) |
-| **EMV (Contact)** | Selected — but SoftPOS has no chip card reader (see open question) |
+Per the updated Project Profile (2026-04-13), **EMV (Contact) has been removed**. Only two entry modes are now selected on TPP RSO024, and both are confirmed by the official test script `RSO024_Testscript_2026-04-13.xlsx` / `TestTransactions_RSO024.csv`.
 
-**Softpay Assessment:** For a SoftPOS solution, the primary entry mode will be **Contactless** (NFC tap). "Swiped" is selected but not physically applicable to SoftPOS devices (no MSR hardware). "EMV" (contact chip) is selected in the project profile, but SoftPOS devices do not have a chip card reader — **this should be clarified with Fiserv** (whether it is intentional or a configuration error).
+| Entry Mode | POSEntryMode used in official test script | TermCatCode | Count of test cases |
+|---|---|---|---|
+| **Contactless** | `911` (contactless EMV / contactless MSR) | `09` | 250 |
+| **Swiped** | `901` (track data read from magnetic stripe) | `01` or `09` | 173 |
+
+**Observations verified from the 424-case test script:**
+
+- `POSEntryMode` takes **only two values** across all 424 tests: `901` and `911`. No other codes appear.
+- `POSCondCode` is always `00`.
+- `TermEntryCapablt` is always `01`.
+- `TermCatCode` is `01` (Retail/Restaurant — MCC 5812, MCC 5399 subset) or `09` (Mobile/Supermarket/PIN Debit — MCC 5411 + all contactless).
+- `TermClassCode` values observed in Debit tests: `mPOSCPoCNoPIN` (88 cases) and `mPOSCPoCPIN` (88 cases) — confirms Fiserv explicitly supports CPoC (Contactless Payment on COTS = SoftPOS).
+
+**Softpay Assessment:** For a SoftPOS solution, the primary entry mode is **Contactless** (NFC tap, `POSEntryMode=911`). "Swiped" remains selected but is not physically applicable to SoftPOS devices (no MSR hardware on a phone) — Softpay will not exercise 901 in production but the TPP profile permits it, which is acceptable. With EMV (Contact) now removed from the profile, the earlier concern about a configuration oversight is resolved.
 
 ---
 
@@ -435,13 +444,26 @@ For Softpay's mobile/SoftPOS use case, the relevant connectivity options are:
 
 **Warning:** Fiserv strongly discourages IP-based firewall rules. Use DNS resolution.
 
-**Test Credentials (from Project Profile):**
+**Test Credentials (from Project Profile, 2026-04-13):**
 
-| Industry | Merchant ID | TID (Dev 3) | TID (Dev 2) | TID (Cert 1) | Group ID |
-|---|---|---|---|---|---|
-| Restaurant | RCTST1000119068 | 003 | 002 | 001 | 20001 |
-| Retail/QSR | RCTST1000119069 | 003 | 002 | 001 | 20001 |
-| Supermarket | RCTST1000119070 | 003 | 002 | 001 | 20001 |
+| Industry | MCC | Merchant ID | TID (Dev 3) | TID (Dev 2) | TID (Cert 1) | Group ID |
+|---|---|---|---|---|---|---|
+| Restaurant | 5812 | RCTST1000119068 | 003 | 002 | 001 | 20001 |
+| Retail/QSR | 5399 | RCTST1000119069 | 003 | 002 | 001 | 20001 |
+| Supermarket | 5411 | RCTST1000119070 | 003 | 002 | 001 | 20001 |
+
+**Test-script MIDs observed in the official `TestTransactions_RSO024.csv` (2026-04-13, 424 cases):**
+
+The test script uses a **different set of MIDs** from those in the Project Profile. All 424 scenarios use `TermID=00000001` only.
+
+| Industry | MCC | Merchant ID | TID | Test cases |
+|---|---|---|---|---|
+| Restaurant | 5812 | `RCTST1000120414` | 00000001 | 23 |
+| Retail | 5399 | `RCTST1000120415` | 00000001 | 213 |
+| Supermarket | 5411 | `RCTST1000120416` | 00000001 | 187 |
+| (EncryptionKeyRequest only) | — | `RCTST0000000065` | 00000001 | 1 |
+
+**Open question for Fiserv workshop:** Which MID set is authoritative for cert — the Project-Profile MIDs (`1000119068/69/70`) or the test-script MIDs (`1000120414/15/16`)? Empirical probing on 2026-04-12 against the Project-Profile MIDs returned `109 INVALID TERM` because the sandbox's TestCase lookup could not find matching parameters; the test-script MIDs are the ones referenced by every official test case and therefore appear to be the correct targets for the sandbox TestCase matcher.
 
 ### 4.5 SRS (Self-Registration System) — One-Time per MID/TID
 
@@ -553,28 +575,41 @@ The Datawire XML API provides:
 | **PINless POS Debit Selected** | **Yes** — PINless POS Debit is also selected |
 | **Online PIN for Contactless** | Required for PIN Debit transactions above CVM limit — **clarification needed** on how this works with SoftPOS/COTS devices under MPoC |
 | **PIN Block Format** | ISO Format 0 (confirmed by XSD: `PINData` = `Len16HexString` = 16 hex chars = 8 bytes) |
-| **Encryption Method** | **Master Session Encryption** (selected in project profile; Softpay decision) |
+| **Encryption Method (Project Profile)** | **Master Session Encryption** selected |
+| **Encryption Method (observed in test script)** | **DUKPT KSN** — every PIN sample in `TestTransactions_RSO024.csv` uses `KeySerialNumData` (20-hex KSN), e.g. `F876543210A00420015F` and `F8765432108015200018`. No `MSKeyID` appears anywhere in the 424-case test script. |
 
-**PINGrp Implementation Required:** Since PIN Debit is selected, Softpay must implement the `PINGrp` (PIN Group) in the UMF spec with the following fields:
+> **Discrepancy flagged for workshop:** The Project Profile selects *Master Session Encryption*, but the official test script exclusively demonstrates DUKPT (`KeySerialNumData`). Fiserv must confirm which mechanism is expected for cert and production, and whether the existing TPP RSO024 is provisioned for DUKPT, MSE, or both. See Workshop Q2.x.
+
+**PINGrp — verified shape from `TestTransactions_RSO024.csv` (PIN Debit Refund / PIN Debit Auth):**
+
+```xml
+<PINGrp>
+  <PINData>FF531A910924EB99</PINData>
+  <KeySerialNumData>F876543210A00420015F</KeySerialNumData>
+</PINGrp>
+```
+
+**PINGrp — all fields defined in the UMF XSD:**
 
 | Field | Description |
 |---|---|
 | `PINData` | Encrypted PIN block (16 hex chars, ISO Format 0) |
-| `MSKeyID` | **Master Session Key ID** (from `EncryptionKeyRequest` response) |
+| `KeySerialNumData` | **DUKPT KSN** — 20 hex chars. Present in every test-script PIN sample. |
+| `MSKeyID` | Master Session Key ID (from `EncryptionKeyRequest` response). Project-profile selection, but **not present in any test-script sample**. |
 | `NumPINDigits` | Number of PIN digits entered |
-| `EnhKeyFmt` | Enhanced key format (`T` = TR-31) |
+| `EnhKeyFmt` | Enhanced key format (`T` = TR-31). Observed once in the test script. |
 | `EnhKeyMgtData` | Enhanced key management data (up to 256 chars) |
 | `EnhKeyChkDig` | Enhanced key check digit (up to 6 hex chars) |
 | `EnhKeySlot` | Enhanced key slot (`1` or `2`) |
+| `KeyOffset` | Key offset (DUKPT variants) |
 
-**Note:** Since Softpay will use **Master Session Encryption**, the `KeySerialNumData` (DUKPT KSN) and `KeyOffset` fields are not used. PINGrp will contain `PINData` + `MSKeyID`.
-
-**Critical Consideration:** Online PIN entry on a COTS/SoftPOS device has significant MPoC (Mobile Payments on COTS) implications. Softpay's certified PIN pad component handles PIN entry securely, but the interaction with Fiserv's Master Session key exchange process and HSM requirements must be clarified.
+**Critical Consideration:** Online PIN entry on a COTS/SoftPOS device has significant MPoC (Mobile Payments on COTS) implications. Softpay's certified PIN pad component handles PIN entry securely, but the interaction with Fiserv's key exchange process and HSM requirements must be clarified — especially because the test script appears to expect DUKPT rather than the MSE option selected in the profile.
 
 **Open Questions for PIN Debit:**
-- What is the process for obtaining the test master key for Sandbox/Certification?
-- Is online PIN supported for contactless transactions, or only for contact chip?
-- Are separate `EncryptionKeyRequest` calls needed per MID/TID combination?
+- Why does the official test script use `KeySerialNumData` (DUKPT) rather than `MSKeyID` (Master Session) when Master Session Encryption is selected in the Project Profile? Is TPP RSO024 in fact DUKPT-configured?
+- If DUKPT is required, what BDK provisioning and KSN seeding process does Fiserv expect for Softpay's keys on SoftPOS devices?
+- If Master Session is required, what is the process for obtaining the test master key for Sandbox/Certification, and are separate `EncryptionKeyRequest` calls needed per MID/TID combination?
+- Is online PIN supported for contactless transactions, or only for contact chip (now that EMV contact is removed from the profile, the answer directly determines whether PIN Debit is viable on SoftPOS at all)?
 
 ### 5.3 TLS Requirements
 
@@ -807,7 +842,7 @@ Fiserv assigns the following identifiers:
 
 | Identifier            | Description                                 | Test Values           |
 | --------------------- | ------------------------------------------- | --------------------- |
-| **MID (Merchant ID)** | Up to 16 alphanumeric characters            | RCTST1000119068/69/70 |
+| **MID (Merchant ID)** | Up to 16 alphanumeric characters            | Project Profile: RCTST1000119068/69/70 · Test script: RCTST1000120414/15/16 |
 | **TID (Terminal ID)** | Up to 8 alphanumeric characters             | 001, 002, 003         |
 | **Group ID (GID)**    | 5-13 alphanumeric characters                | 20001                 |
 | **TPP ID**            | 6 alphanumeric characters (Fiserv-assigned) | RSO024                |
@@ -860,16 +895,24 @@ Per the Datawire Overview:
 
 ### 9.3 Test Scripts
 
-**Mandatory Test Cases:** 425+ test cases (from RSO024_Testscript_2026-04-07.xlsx)  
+**Mandatory Test Cases:** 424 test cases (from `RSO024_Testscript_2026-04-13.xlsx` / `TestTransactions_RSO024.csv`)  
 **Non-Mandatory (Unit) Test Cases:** 84+ test cases (recommended but not required for certification)
 
-Test cases cover:
-- All selected payment types (Credit: Visa, MC, Amex, Discover, Diners)
-- All selected transaction types (Authorization, Completion, Refund, Online Refund, PIN Debit Refund, Void/Full Reversal, Void of Refund)
-- All selected entry modes (Contactless, Swiped, EMV)
-- Industries: Restaurant, Retail/QSR, Supermarket
-- Special scenarios: DCC, reversals, timeouts, partial reversals
-- SoftPOS-specific: Terminal Category Code validation
+Test case breakdown (verified from the 2026-04-13 test script):
+
+| Dimension | Distribution |
+|---|---|
+| By TxnType | Authorization 183 · Refund 174 · Completion 66 · EncryptionKeyRequest 1 |
+| By PymtType | Credit 413 · Debit 10 · EncryptionKeyRequest 1 |
+| By CardType (Credit) | MasterCard 101 · Amex 96 · Discover 93 · Visa 81 · Diners 42 |
+| By POSEntryMode | Contactless (`911`) 250 · Swiped (`901`) 173 |
+| By TermCatCode | `09` (mPOS / CPoC) 260 · `01` (Retail/Restaurant) 164 |
+| By MID / MCC | RCTST1000120415 / 5399 — 213 · RCTST1000120416 / 5411 — 187 · RCTST1000120414 / 5812 — 23 · RCTST0000000065 — 1 |
+| Reversal/Void | `ReversalRequest` with `ReversalInd=Void` — 132 cases |
+| DCC | `DCCGrp` with `DCCInd=1` — 10 cases |
+| Digital Wallet | `DigWltProgType=ApplePay` — 134 cases (no Google/Samsung Pay in test script) |
+| PIN samples | 5 PIN cases use DUKPT `KeySerialNumData`; zero use `MSKeyID` |
+| EMV tags | **Zero** `ICCData` / `TagData` / `EMVTagData` in the 424 payloads — test script validates protocol fields only, not EMV kernel output |
 
 ### 9.4 Test Card Numbers (Ad Hoc Testing)
 
@@ -910,7 +953,7 @@ The SDK provides 425+ sample XML request payloads in `TestTransactions_RSO024.xl
          <OrderNum>17420490</OrderNum>
          <TPPID>RSO024</TPPID>
          <TermID>00000001</TermID>
-         <MerchID>RCTST1000119069</MerchID>
+         <MerchID>RCTST1000120415</MerchID>
          <MerchCatCode>5399</MerchCatCode>
          <POSEntryMode>901</POSEntryMode>
          <POSCondCode>00</POSCondCode>
@@ -1028,7 +1071,7 @@ Source: `Datawire Compliance Test Form for Rapid Connect.doc` (v3.4.7), `Datawir
 |---|---|
 | **Specification Type** | XML Schema (XSD) + PDF documentation |
 | **XSD File** | `UMF_XML_SCHEMA.xsd` (6,247 lines, namespace `com/fiserv/Merchant/gmfV15.04`) |
-| **PDF Documentation** | `UMF_RSO024_2026.04.07.pdf` (comprehensive field-level spec) |
+| **PDF Documentation** | `UMF_RSO024_2026.04.13.pdf` (comprehensive field-level spec) |
 | **Sample Code** | `RCToolkitSampleCode.zip` (Java, C#, PHP) |
 | **YAML/OpenAPI** | **Not provided** — XSD only |
 
@@ -1266,8 +1309,7 @@ Based on the 5-stage certification lifecycle and typical SoftPOS integration com
 | A3  | Datawire XML API is the correct connectivity option for Softpay                                                                            | May need to use a different API variant                         |
 | A4  | Tipping is enabled via "Tip Amount" selection and works with the dual-message auth+completion flow                                         | May need additional configuration                               |
 | A5  | Production MID/TID assignment is a manual process through Fiserv                                                                           | May be automated/API-based                                      |
-| A6  | EMV (contact chip) selection in the profile is a configuration oversight since SoftPOS has no chip reader                                  | May need to support contact chip in some manner                 |
-| A7  | Softpay's certified PIN pad satisfies Fiserv's requirements for online PIN entry on COTS devices                                           | May need additional PIN pad certification or different approach |
+| A6  | Softpay's certified PIN pad satisfies Fiserv's requirements for online PIN entry on COTS devices                                           | May need additional PIN pad certification or different approach |
 
 ### 14.4 Key Risks
 
@@ -1277,7 +1319,7 @@ Based on the 5-stage certification lifecycle and typical SoftPOS integration com
 | R2  | EMV card brand certification may require additional testing beyond Rapid Connect                                                                    | Timeline delay; additional cost                                                  | Clarify early with Fiserv; leverage existing Softpay certifications                                                      |
 | R3  | DCC implementation requires rate feed integration and specific EMV handling                                                                         | Feature delay if not planned properly                                            | Engage DCC provider early; plan contactless edge cases                                                                   |
 | R4  | 2026 UMF Changes (v15.04.5) introduce new fields (Transaction Acceptance Method, Cardholder Form Factor, Payment Method Type)                       | May require implementation of new fields                                         | Review all 2026 changes for applicability                                                                                |
-| R5  | EMV (contact chip) is selected but SoftPOS has no chip reader — may cause certification issues if tests require contact chip flows                  | Certification delays                                                             | Clarify with Fiserv immediately whether this should be deselected                                                        |
+| R5  | Project Profile selects Master Session Encryption but the official test script exclusively uses DUKPT (`KeySerialNumData`)                          | PIN Debit cert may fail if the wrong mechanism is implemented                    | Confirm with Fiserv in workshop which mechanism is provisioned on TPP RSO024 before implementing PINGrp                  |
 
 ---
 
@@ -1330,16 +1372,18 @@ Network-specific reference fields are now **exempt for Timeout Reversals**:
 | **Transport** | Datawire |
 | **Credit Cards** | Visa, Mastercard, Amex, Discover, Diners Club |
 | **Debit** | PIN Debit, PINless POS Debit |
-| **Entry Modes** | Swiped, Contactless, EMV (Contact) |
-| **Wallets** | Apple Pay, Google Pay, Samsung Pay |
-| **Terminal Category** | Mobile POS, SoftPOS |
-| **Transaction Types** | Authorization, Completion, Refund, Online Refund, PIN Debit Refund, Void/Full Reversal, Void of Refund, Master Session Encryption (HSM) |
-| **Encryption** | Master Session Encryption, Key Block TR-31 |
+| **Entry Modes** | Swiped, Contactless (EMV Contact was removed in the 2026-04-13 profile update) |
+| **Wallets** | Apple Pay, Google Pay, Samsung Pay (Project Profile). **Test script only exercises Apple Pay** (`DigWltProgType=ApplePay`). |
+| **Terminal Category** | Mobile POS, SoftPOS. `TermClassCode` values in test script: `mPOSCPoCNoPIN`, `mPOSCPoCPIN`. |
+| **Transaction Types** | Authorization, Completion, Refund, Online Refund, PIN Debit Refund, Void/Full Reversal, Void of Refund, EncryptionKeyRequest |
+| **Encryption (profile)** | Master Session Encryption, Key Block TR-31 |
+| **Encryption (observed)** | DUKPT `KeySerialNumData` in every PIN sample of the official test script — discrepancy flagged for workshop (§5.2) |
 | **DCC** | Selected |
 | **Tipping** | Selected (Tip Amount) |
 | **PayFac** | Not selected |
 | **Volume** | 1M-5M transactions/year |
-| **Test MIDs** | RCTST1000119068, RCTST1000119069, RCTST1000119070 |
+| **Test MIDs (Project Profile)** | RCTST1000119068 / RCTST1000119069 / RCTST1000119070 |
+| **Test MIDs (Test-script-referenced)** | RCTST1000120414 (MCC 5812) / RCTST1000120415 (MCC 5399) / RCTST1000120416 (MCC 5411) / RCTST0000000065 (EncryptionKeyRequest only) |
 
 ---
 
@@ -1347,7 +1391,7 @@ Network-specific reference fields are now **exempt for Timeout Reversals**:
 
 | Document | Version/Date | Purpose |
 |---|---|---|
-| UMF_RSO024_2026.04.07.pdf | v15.04.5 / Feb 25, 2026 | Main UMF protocol specification |
+| UMF_RSO024_2026.04.13.pdf | v15.04.5 / Feb 25, 2026 (re-issued 2026-04-13) | Main UMF protocol specification |
 | UMF_XML_SCHEMA.xsd | gmfV15.04 / Jan 7, 2026 | XML schema definition |
 | Fiserv_Generic_EMV_Implementation_Guide_v2025_RG20_081225.pdf | v2025.RG20 / Aug 12, 2025 | EMV implementation requirements |
 | 2026 UMF Changes-1.pdf | Feb 25, 2026 | UMF change log |
@@ -1357,8 +1401,8 @@ Network-specific reference fields are now **exempt for Timeout Reversals**:
 | Datawire_Secure_Transport_Overview.pptx | Jan 2023 | Datawire architecture |
 | START_HERE.pdf | v12.04.2 / Jul 26, 2022 | SDK onboarding guide |
 | Functionality Grid.xlsx | — | Feature/platform matrix |
-| TestTransactions_RSO024.xlsx | Apr 7, 2026 | Sample XML test payloads |
-| RSO024_Testscript_2026-04-07.xlsx | Apr 7, 2026 | Certification test scripts |
+| TestTransactions_RSO024.xlsx / .csv | Apr 13, 2026 | Sample XML test payloads (424 cases) |
+| RSO024_Testscript_2026-04-13.xlsx | Apr 13, 2026 | Certification test scripts (424 mandatory cases) |
 | RCToolkitSampleCode.zip | — | Java/C#/PHP sample code (includes HTTP POST, SOAP, TCP/IP handlers) |
 | Secure_Transport_Guide.zip | — | Datawire integration guide (extracted — see below) |
 | SecureTransport-RapidConnect-Guide.pdf | — | Datawire XML/SOAP/TCP protocol, SRS registration, transaction flow |

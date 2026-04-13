@@ -2,10 +2,39 @@
 
 **Fiserv Rapid Connect -- Project RSO024, UMF v15.04**
 **Softpay SoftPOS Integration**
+**Last updated:** 2026-04-13 (reconciled against `TestTransactions_RSO024.csv`, 424 cases)
 
 This document is a practical developer reference for constructing the correct POS Entry Mode,
 terminal capability fields, and related identifiers when sending transactions from a Softpay
 SoftPOS device to Fiserv Rapid Connect.
+
+---
+
+## 0. Verified Truth from the Official Test Script (2026-04-13)
+
+The 424-case certification test script `TestTransactions_RSO024.csv` **only uses two POSEntryMode values**:
+
+| POSEntryMode | Meaning | Count | TermCatCode observed |
+|---|---|---|---|
+| `911` | Contactless (EMV + MSR combined path) | 250 | `09` |
+| `901` | Swiped (track data from magnetic stripe) | 173 | `01` or `09` |
+
+Additional invariants observed across **every** test case:
+
+- `POSCondCode = 00`
+- `TermEntryCapablt = 01`
+- `TermLocInd = 0`
+- `CardCaptCap = 1`
+- `TPPID = RSO024`
+- `GroupID = 20001`
+- `TermID = 00000001`
+- `TermClassCode` (Debit tests only) is either `mPOSCPoCNoPIM` or `mPOSCPoCPIN`
+
+**Digital Wallet:** Only `DigWltProgType=ApplePay` appears in the test script (134 cases). Google Pay and Samsung Pay are listed in the Project Profile but not exercised by cert tests.
+
+**Consequence for implementation:** The more granular contactless codes often discussed in UMF training material (`071`, `072`, `076`, `910`, `912`, etc.) are **not** the codes Fiserv's sandbox TestCase matcher expects for TPP RSO024. Probes sent with POSEntryMode=`000`, `071`, `910`, or `912` will receive `109 INVALID TERM` because they do not match any official test case. **Use `911` for contactless and `901` for swiped.**
+
+The sections below preserve the broader taxonomy for reference, but anything that conflicts with the table above is superseded by the test script.
 
 ---
 
@@ -87,20 +116,17 @@ Entry Mode `07` (Contactless ICC Read).
 
 ## 2. Recommended Values for Softpay SoftPOS
 
-### Primary Transaction Scenarios
+> **These values are the ones accepted by TPP RSO024 per the 2026-04-13 test script. Anything else returns `109 INVALID TERM` or `TP0003`.**
 
-| Scenario | POSEntryMode | POSCondCode | TermCatCode | TermEntryCapablt | DigWltInd | DigWltProgType |
+### Primary Transaction Scenarios (verified against `TestTransactions_RSO024.csv`)
+
+| Scenario | POSEntryMode | POSCondCode | TermCatCode | TermEntryCapablt | TermClassCode | DigWltProgType |
 |---|---|---|---|---|---|---|
-| Contactless EMV chip tap, PIN capable | `071` | `00` | `09` | `06` | -- | -- |
-| Contactless EMV chip tap, no PIN | `072` | `00` | `09` | `06` | -- | -- |
-| Contactless EMV chip tap, mPOS software PIN | `076` | `00` | `09` | `06` | -- | -- |
-| Apple Pay tap | `071` | `00` | `09` | `06` | `Passthru` | `ApplePay` |
-| Google Pay tap | `071` | `00` | `09` | `06` | `Passthru` | `AndroidPay` |
-| Samsung Pay tap | `071` | `00` | `09` | `06` | `Passthru` | `SamsungPay` |
-| Contactless MSD tap, PIN capable | `911` | `00` | `09` | `11` | -- | -- |
-| Contactless MSD tap, no PIN | `912` | `00` | `09` | `11` | -- | -- |
-| Manual key entry (fallback from NFC fail) | `791` | `00` | `09` | `10` | -- | -- |
-| Refund (card not present, referenced) | `012` | `05` | `09` | `06` | -- | -- |
+| Contactless card tap / digital wallet | `911` | `00` | `09` | `01` | `mPOSCPoCNoPIN` (no PIN) or `mPOSCPoCPIN` (with PIN) | (omit unless wallet; then `ApplePay`) |
+| Apple Pay tap | `911` | `00` | `09` | `01` | as above | `ApplePay` |
+| Google Pay tap | `911` | `00` | `09` | `01` | as above | *not exercised in cert tests — see workshop Q* |
+| Samsung Pay tap | `911` | `00` | `09` | `01` | as above | *not exercised in cert tests — see workshop Q* |
+| Swiped (not applicable to SoftPOS devices, but permitted by TPP) | `901` | `00` | `01` or `09` | `01` | — | — |
 
 ### Field-by-Field Rationale
 

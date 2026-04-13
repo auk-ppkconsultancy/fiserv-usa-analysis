@@ -2,7 +2,21 @@
 
 **Project:** RSO024 — Softpay by Softpay ApS  
 **Protocol:** Fiserv Rapid Connect UMF v15.04.5  
-**Date:** April 2026
+**Last updated:** 2026-04-13 (reconciled against `TestTransactions_RSO024.csv`)
+
+---
+
+## 0. Discrepancy Flagged in 2026-04-13 Review — DUKPT vs Master Session
+
+The RSO024 Project Profile selects **Master Session Encryption** (with TR-31 Key Block). However, every PIN sample in the official 2026-04-13 test script `TestTransactions_RSO024.csv` uses **DUKPT** — the `PINGrp` carries `KeySerialNumData` (20-hex KSN), not `MSKeyID`.
+
+Observed from the 424-case test script:
+
+- 5 `DebitRequest` PIN samples with `PINData` + `KeySerialNumData` (values `F876543210A00420015F` and `F8765432108015200018`).
+- **Zero** `MSKeyID` occurrences.
+- 1 `EncryptionKeyRequest` case against MID `RCTST0000000065` — suggesting MSE *is* exercised, but only once, and PIN payloads themselves consistently use DUKPT.
+
+This must be resolved with Fiserv before implementation begins. The sections below cover **both** mechanisms; once Fiserv confirms, delete the one that does not apply.
 
 ---
 
@@ -30,7 +44,7 @@ PIN Debit and PINless POS Debit are both **selected** in the RSO024 Project Prof
 
 | Feature | Selected | UMF Message Type | Key Requirement |
 |---|---|---|---|
-| **PIN Debit** | Yes | `DebitRequest` / `DebitResponse` | PIN encryption (Master Session) |
+| **PIN Debit** | Yes | `DebitRequest` / `DebitResponse` | PIN encryption (profile says Master Session; test script shows DUKPT — see §0) |
 | **PINless POS Debit** | Yes | `PinlessDebitRequest` / `PinlessDebitResponse` | No PIN encryption needed |
 | **PIN Debit Refund** | Yes | `DebitRequest` with `TxnType=Refund` | — |
 | **Master Session Encryption** | Yes | `AdminRequest` (`EncryptionKeyRequest`) | HSM, 24h key rotation |
@@ -46,8 +60,8 @@ PIN Debit and PINless POS Debit are both **selected** in the RSO024 Project Prof
 |---|---|---|
 | **Cardholder Verification** | Online PIN entry | No PIN required |
 | **UMF Message** | `DebitRequest` | `PinlessDebitRequest` |
-| **PINGrp Required** | Yes (PINData + MSKeyID) | No |
-| **PIN Encryption** | Required (Master Session Encryption) | Not applicable |
+| **PINGrp Required** | Yes (`PINData` + `KeySerialNumData` per test script, OR `PINData` + `MSKeyID` per profile selection — see §0) | No |
+| **PIN Encryption** | Required. Profile: Master Session Encryption. Test script samples: DUKPT. | Not applicable |
 | **Card Types** | Debit cards with PIN support | Debit cards eligible for PINless routing |
 | **Transaction Limits** | No limit (PIN verified) | Subject to PINless threshold (network-dependent) |
 | **Contactless Support** | Requires online PIN on device | CDCVM or below CVM limit |
@@ -228,12 +242,12 @@ ISO-4 is the newer AES-based format:
 <xs:complexType name="PINGrp">
   <xs:sequence>
     <xs:element ref="PINData" minOccurs="0" />           <!-- 16 hex chars, encrypted PIN block -->
-    <xs:element ref="KeySerialNumData" minOccurs="0" />  <!-- 20 alphanumeric (DUKPT — not used) -->
-    <xs:element ref="KeyOffset" minOccurs="0" />          <!-- 4 alphanumeric (not used) -->
-    <xs:element ref="KeyMgtData" minOccurs="0" />         <!-- max 36 hex chars (not used) -->
-    <xs:element ref="MSKeyID" minOccurs="0" />            <!-- max 10 alphanumeric, Master Session Key ID -->
+    <xs:element ref="KeySerialNumData" minOccurs="0" />  <!-- 20 hex (DUKPT KSN) — USED in every PIN sample in the 2026-04-13 test script -->
+    <xs:element ref="KeyOffset" minOccurs="0" />          <!-- 4 alphanumeric (not observed in test script) -->
+    <xs:element ref="KeyMgtData" minOccurs="0" />         <!-- max 36 hex chars (not observed in test script) -->
+    <xs:element ref="MSKeyID" minOccurs="0" />            <!-- max 10 alphanumeric, Master Session Key ID — NOT present in any test-script sample -->
     <xs:element ref="NumPINDigits" minOccurs="0" />       <!-- 4, 5, 6, 7, 8, 9, 10, 11, or 12 -->
-    <xs:element ref="EnhKeyFmt" minOccurs="0" />          <!-- "T" (TR-31) -->
+    <xs:element ref="EnhKeyFmt" minOccurs="0" />          <!-- "T" (TR-31) — observed once -->
     <xs:element ref="EnhKeyMgtData" minOccurs="0" />      <!-- max 256 chars -->
     <xs:element ref="EnhKeyChkDig" minOccurs="0" />       <!-- max 6 hex chars -->
     <xs:element ref="EnhKeySlot" minOccurs="0" />         <!-- "1" or "2" -->
@@ -241,7 +255,23 @@ ISO-4 is the newer AES-based format:
 </xs:complexType>
 ```
 
-### 6.2 Field Usage: Master Session Encryption
+### 6.1a Field Usage — DUKPT (as observed in the test script)
+
+| Field | Required | Value |
+|---|---|---|
+| `PINData` | **Yes** | 16-hex-char encrypted PIN block (ISO Format 0), e.g. `FF531A910924EB99` |
+| `KeySerialNumData` | **Yes** | 20-hex-char DUKPT KSN, e.g. `F876543210A00420015F` |
+
+```xml
+<PINGrp>
+  <PINData>FF531A910924EB99</PINData>
+  <KeySerialNumData>F876543210A00420015F</KeySerialNumData>
+</PINGrp>
+```
+
+This is the shape that appears in TC 200552820010 and other PIN Debit samples in `TestTransactions_RSO024.csv`. If Fiserv confirms DUKPT as the correct mechanism, implement this shape.
+
+### 6.2 Field Usage: Master Session Encryption (per Project Profile selection)
 
 | Field | Required | Value |
 |---|---|---|

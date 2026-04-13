@@ -6,16 +6,28 @@ import java.time.format.*;
 /**
  * Fresh register + activate + auth probe for a single MID/TID.
  * Used to verify end-to-end SRS flow (including that activation actually works).
+ *
+ * Updated 2026-04-13: replays official test case 200376490010 from
+ * TestTransactions_RSO024.csv — the Fiserv sandbox's TestCase matcher only
+ * approves transactions whose (MCC, PymtType, TxnType, Amount, POSEntryMode, PAN)
+ * tuple matches one of the 424 official cases. Any other combination returns
+ * "109 INVALID TERM".
+ *
+ * Exact parameters from TC 200376490010:
+ *   MID=RCTST1000120415  MCC=5399  TID=00000001  POSEntryMode=911
+ *   TermCatCode=09  TermEntryCapablt=01  Amount=$3.14  CardType=Visa
+ *   Track2=4005520000000921=25121011000012300000
  */
 public class FullProbe {
     static final String SRS_URL = "https://stagingsupport.datawire.net/nocportal/SRS.do";
     static final String TX_URL  = "https://stg.dw.us.fdcnet.biz/rc";
 
-    // Combos to test: exclude 119068/001 (already activated from main runner)
+    // Test-script MIDs — these are the MIDs referenced in every XML payload
+    // in TestTransactions_RSO024.csv (2026-04-13). TID is always 00000001.
     static final String[][] TARGETS = {
-        {"RCTST1000119068", "00000002"},
-        {"RCTST1000119070", "00000002"},
-        {"RCTST0000000065", "00000001"},
+        {"RCTST1000120415", "00000001"},  // Retail, MCC 5399
+        {"RCTST1000120416", "00000001"},  // Supermarket, MCC 5411
+        {"RCTST1000120414", "00000001"},  // Restaurant, MCC 5812
     };
 
     static int clientRefCounter = 500;
@@ -51,10 +63,14 @@ public class FullProbe {
                 continue;
             }
 
-            // Send auth with Track2Data + POSEntryMode=901 (contactless chip)
+            // Send auth with Track2Data + POSEntryMode=911 (contactless)
             Thread.sleep(2000);
             String txnResp = sendAuth(did, auth, mid, tid);
+            System.out.println("FULL TXN RESPONSE:");
+            System.out.println(txnResp);
             String umfPayload = extractCdataPayload(txnResp);
+            System.out.println("UMF PAYLOAD:");
+            System.out.println(umfPayload);
             String respCode = extract(umfPayload, "<RespCode>", "</RespCode>");
             String respData = extract(umfPayload, "<AddtlRespData>", "</AddtlRespData>");
             String errData  = extract(umfPayload, "<ErrorData>", "</ErrorData>");
@@ -99,6 +115,17 @@ public class FullProbe {
         String stan = String.format("%06d", Math.abs(stanMicro) % 1000000);
         String refNum = String.format("%012d", Math.abs(stanMicro) % 1000000000000L);
 
+        // MCC is determined by MID per the 2026-04-13 test script:
+        //   RCTST1000120414 -> 5812 (Restaurant)
+        //   RCTST1000120415 -> 5399 (Retail)
+        //   RCTST1000120416 -> 5411 (Supermarket)
+        String mcc;
+        if ("RCTST1000120414".equals(mid))      mcc = "5812";
+        else if ("RCTST1000120416".equals(mid)) mcc = "5411";
+        else                                     mcc = "5399"; // default: 120415
+
+        // Replays test case 200376490010 exactly (Visa contactless Authorization).
+        // Amount and PAN must match a known TestCase row or sandbox returns 109 INVALID TERM.
         String umf = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
             + "<GMF xmlns=\"com/fiserv/Merchant/gmfV15.04\">"
             + "<CreditRequest>"
@@ -113,21 +140,30 @@ public class FullProbe {
             + "<TPPID>RSO024</TPPID>"
             + "<TermID>" + tid + "</TermID>"
             + "<MerchID>" + mid + "</MerchID>"
-            + "<MerchCatCode>5812</MerchCatCode>"
-            + "<POSEntryMode>901</POSEntryMode>"
+            + "<MerchCatCode>" + mcc + "</MerchCatCode>"
+            + "<POSEntryMode>911</POSEntryMode>"
             + "<POSCondCode>00</POSCondCode>"
             + "<TermCatCode>09</TermCatCode>"
-            + "<TermEntryCapablt>04</TermEntryCapablt>"
-            + "<TxnAmt>000000000150</TxnAmt>"
+            + "<TermEntryCapablt>01</TermEntryCapablt>"
+            + "<TxnAmt>000000000314</TxnAmt>"
             + "<TxnCrncy>840</TxnCrncy>"
             + "<TermLocInd>0</TermLocInd>"
             + "<CardCaptCap>1</CardCaptCap>"
             + "<GroupID>20001</GroupID>"
             + "</CommonGrp>"
             + "<CardGrp>"
-            + "<Track2Data>4017779995555556=30041200000000001</Track2Data>"
+            + "<Track2Data>4005520000000921=25121011000012300000</Track2Data>"
             + "<CardType>Visa</CardType>"
             + "</CardGrp>"
+            + "<AddtlAmtGrp>"
+            + "<PartAuthrztnApprvlCapablt>1</PartAuthrztnApprvlCapablt>"
+            + "</AddtlAmtGrp>"
+            + "<VisaGrp>"
+            + "<ACI>Y</ACI>"
+            + "<VisaBID>56412</VisaBID>"
+            + "<VisaAUAR>000000000000</VisaAUAR>"
+            + "<TaxAmtCapablt>1</TaxAmtCapablt>"
+            + "</VisaGrp>"
             + "</CreditRequest></GMF>";
 
         String envelope = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"

@@ -1,14 +1,103 @@
 # Fiserv Rapid Connect — Staging Test Log
 
-**Dates:** 2026-04-12 (initial), 2026-04-13 (extended probe)
+**Dates:** 2026-04-12 (initial), 2026-04-13 (extended probe + test-script MID re-run)
 **Project:** RSO024 (Softpay ApS)
 **Environment:** Staging (`stg.dw.us.fdcnet.biz`)
-**Issue:** RespCode 109 "INVALID TERM" on all authorization attempts — confirmed to originate from the **BUYPASS** authorization network (AthNtwkID=14), not the Rapid Connect / Datawire transport layer.
-**Action Needed:**
-1. Provision at least one cert MID/TID on the BUYPASS host for RSO024.
-2. Enable keyed (PAN) entry on TPP RSO024 — currently only chip/contactless POSEntryModes are accepted. Cert may require PAN entry for initial steps.
-3. Reset SRS registration tickets for the cert MIDs (current tickets have been consumed by probing — see §7).
-4. Provide the staging master encryption key (see §6).
+**Issue:** RespCode 109 "INVALID TERM" on all authorization attempts.
+
+## 2026-04-13 update — New test-script MIDs also return 109 INVALID TERM from BUYPASS
+
+We re-ran `FullProbe` (SRS register + activate + auth) and `TxnOnlyProbe` (auth only, with DID reuse) against the **test-script MIDs** from `TestTransactions_RSO024.csv`, replaying test case **TC 200376490010** (Visa Contactless Authorization) byte-for-byte. Results below.
+
+### SRS layer — all three MIDs registered and activated cleanly
+
+| MID | MCC | DID | Status |
+|---|---|---|---|
+| `RCTST1000120415` | 5399 (Retail) | `00068870522555872903` | Registered + Activated OK |
+| `RCTST1000120416` | 5411 (Supermarket) | `00068870579979596967` | Registered + Activated OK |
+| `RCTST1000120414` | 5812 (Restaurant) | `00068870490417436045` | Registered + Activated OK |
+
+### Transaction layer — all three return 109 INVALID TERM from BUYPASS
+
+Actual payload returned (all three MIDs give identical shape):
+
+```xml
+<CreditResponse>
+  <CommonGrp>
+    <PymtType>Credit</PymtType>
+    <TxnType>Authorization</TxnType>
+    <MerchID>RCTST1000120415</MerchID>
+    <TxnAmt>000000000314</TxnAmt>
+    <TxnCrncy>840</TxnCrncy>
+    ...
+  </CommonGrp>
+  <VisaGrp>
+    <TransID>2314885530818453</TransID>
+  </VisaGrp>
+  <RespGrp>
+    <RespCode>109</RespCode>
+    <AddtlRespData>INVALID TERM</AddtlRespData>
+    <AthNtwkID>14</AthNtwkID>
+    <AthNtwkNm>BUYPASS</AthNtwkNm>
+  </RespGrp>
+</CreditResponse>
+```
+
+Request payload was the exact TC 200376490010 shape: POSEntryMode=`911`, TermCatCode=`09`, TermEntryCapablt=`01`, MCC set per MID (5399/5411/5812), Track2=`4005520000000921=25121011000012300000`, Amount=`$3.14`, CardType=`Visa`, with `AddtlAmtGrp.PartAuthrztnApprvlCapablt=1` and `VisaGrp` (ACI=Y, VisaBID=56412, VisaAUAR, TaxAmtCapablt=1). Only STAN/RefNum/timestamps/ClientRef vary from the CSV row.
+
+### Key implications
+
+1. **"Sandbox" = the staging Rapid Connect endpoint `https://stg.dw.us.fdcnet.biz/rc`.** There is no separate sandbox host; the staging URL *is* the sandbox, and it enforces test-script conformance for every inbound transaction.
+2. **The sandbox expects transactions to follow the official test script** (`TestTransactions_RSO024.csv`, 424 rows). A transaction is expected to byte-match one of those rows on (Currency, MCC, PymtType, TxnType, Amount, POSEntryMode, Encryption, Token, PAN). Non-conforming transactions are rejected and flagged in the Fiserv sandbox portal's diagnostic view.
+3. **The `Recommendation: "TestCase not found. Please check the parameters: …"` text is NOT in the UMF HTTP response.** It is only visible in the **Fiserv sandbox portal UI** (the user viewed it manually there and shared it with this analysis). The UMF response body contains only the `RespGrp` shown above — `RespCode=109`, `AddtlRespData=INVALID TERM`, `AthNtwkNm=BUYPASS`. Any probe that inspects only the HTTP response will never see the Recommendation text, which is why prior probe runs looked like plain `109 INVALID TERM` without the context that Fiserv support sees.
+4. **Our byte-for-byte replay of TC 200376490010 still returned 109 INVALID TERM** across all three test-script MIDs. So either (a) our replay still has a subtle mismatch versus the canonical test-script row that the sandbox is checking for, or (b) the matching check passed and the 109 is then coming from the BUYPASS/terminal-provisioning layer behind the sandbox. The response carries `AthNtwkNm=BUYPASS / AthNtwkID=14`, which is consistent with either — it can either be a genuine host hop or a sandbox-fabricated envelope. Only Fiserv can confirm which, by looking at the portal diagnostic for our STAN/RefNum.
+5. **Net actionable:** (a) ask Fiserv to pull the sandbox portal log for our specific STAN/RefNum runs (so we can see whether the "TestCase not found" annotation fires or not), (b) if it fires, identify which field differs from the canonical TC 200376490010 row, (c) if it does not fire, then this is a BUYPASS-side terminal-provisioning issue against the test-script MIDs. Workshop Q4.6 and Q4.7 cover both branches.
+
+### 2026-04-13 evening — Byte-exact replay across 8 diverse test-script rows
+
+Built `TestCaseProbe.java`, which reads `TestTransactions_RSO024.csv` directly and replays selected rows verbatim (only `STAN`, `RefNum`, `OrderNum`, `LocalDateTime`, `TrnmsnDateTime` are refreshed per run — every other field including `MerchID`, `TermID`, `POSEntryMode`, `TermCatCode`, `TxnAmt`, `Track2Data`, `CardType`, `VisaGrp`/`MCGrp`, `AddtlAmtGrp`, `DigWltProgType` is kept byte-identical to the CSV). This eliminates any possibility of hand-transcription drift from the canonical test case.
+
+The 8 cases were chosen to span every axis the test script varies along:
+
+| TestCase ID | MerchID | Industry | EntryMode | TermCatCode | Brand | TxnType | Feature flag | Result |
+|---|---|---|---|---|---|---|---|---|
+| 200376490010 | 120415 | Retail 5399 | 911 contactless | 09 | Visa | Authorization | plain | **109 INVALID TERM** |
+| 200113500010 | 120415 | Retail 5399 | 911 contactless | 01 | Visa | Authorization | `DigWltProgType=ApplePay` | **109 INVALID TERM** |
+| 200072070010 | 120415 | Retail 5399 | 901 swiped | 01 | Visa | Authorization | plain | **109 INVALID TERM** |
+| 200466910010 | 120415 | Retail 5399 | 911 contactless | 09 | MasterCard | Authorization | `MCGrp.DevTypeInd=01` | **109 INVALID TERM** |
+| 200376410010 | 120416 | Supermarket 5411 | 911 contactless | 09 | Visa | Authorization | plain | **109 INVALID TERM** |
+| 200070230010 | 120414 | Restaurant 5812 | 901 swiped | 01 | Visa | Authorization | plain (no contactless TC exists for Restaurant) | **109 INVALID TERM** |
+| 200151030010 | 120415 | Retail 5399 | 901 swiped | 01 | Visa | Refund | `RefundType=Online` | **109 INVALID TERM** |
+| 200109600010 | 120415 | Retail 5399 | 911 contactless | 01 | Visa | Refund | plain | **109 INVALID TERM** |
+
+Every response has the exact same shape as §8-2026-04-13: `RespCode=109`, `AddtlRespData=INVALID TERM`, `AthNtwkID=14`, `AthNtwkNm=BUYPASS`. No `RejectResponse`, no `ErrorData`, no schema complaints.
+
+### What this rules out
+
+Replaying *actual* test-script rows byte-for-byte — and still getting `109 INVALID TERM` on every single one, across every dimension the script varies along — rules out the main non-provisioning theories:
+
+- **Not a POSEntryMode mismatch.** Both `911` (contactless) and `901` (swiped) fail identically.
+- **Not a TermCatCode mismatch.** Both `01` and `09` fail.
+- **Not an industry/MCC mismatch.** Retail `5399`, Supermarket `5411`, and Restaurant `5812` all fail.
+- **Not a card-brand gap.** Visa and MasterCard both fail; Amex/Discover/Diners would almost certainly behave the same.
+- **Not a TxnType scoping issue.** Authorization and Refund both fail.
+- **Not a feature-group issue.** Plain, `DigWltProgType=ApplePay`, and `MCGrp.DevTypeInd=01` variants all fail.
+- **Not a payload-shape issue at the Rapid Connect layer.** If the XML didn't match the RSO024 TPP feature config, we would see a `RejectResponse` or `TP0003 - UMF feature not found` (like the keyed-entry test in §8). Instead we get a fully-formed `CreditResponse` with a `VisaGrp.TransID`, routed through `AthNtwkNm=BUYPASS` and rejected there.
+
+### What this leaves
+
+The rejection can only be **terminal-side on the authorization host**: the test-script MIDs `RCTST1000120414/15/16` (and their one TermID `00000001`) are not provisioned/enabled on BUYPASS for RSO024 staging, regardless of payload. This is consistent with, and now strongly supports, the 2026-04-12 Project-Profile-MID finding.
+
+### Current residual asks for Fiserv
+
+1. **Terminal/MID provisioning on BUYPASS (blocking everything).** Please provision at least one MID/TID on the BUYPASS authorization host for RSO024 staging and tell us which one. We have replayed canonical test-script rows byte-for-byte across two entry modes, two card brands, three industries, two TermCatCodes, two TxnTypes, and two feature variants, and every one is rejected at BUYPASS with `109 INVALID TERM`. Confirm which MID set (`119068/69/70` Project Profile vs `120414/15/16` test script) is the canonical cert set — see workshop Q4.6.
+2. **Sandbox diagnostic (secondary, for completeness).** Pull the Fiserv sandbox portal log for ClientRef `0000700VRSO024` through `0000707VRSO024` (2026-04-13 evening) and the 2026-04-13 afternoon run (`0000500VRSO024` … `0000610VRSO024`) to confirm none of these fired a `"TestCase not found"` annotation (they should not, since they are byte-exact replays).
+3. Resolve the DUKPT vs Master Session Encryption discrepancy — see workshop Q2.6.
+4. Provide the staging master encryption key if MSE is confirmed as the correct PIN mechanism (see §6).
+
+## Original (2026-04-12) diagnosis — superseded by 2026-04-13 findings
+
+The log below originally attributed 109 INVALID TERM purely to BUYPASS-side provisioning. The 2026-04-13 re-run and the user's clarification that **the staging URL itself is the sandbox and it enforces test-script conformance** means the real picture is more nuanced: the 109 could be coming from the sandbox's TestCase-match check (visible only in the Fiserv sandbox portal UI, not in the UMF response) and/or from the terminal-provisioning layer behind it. We cannot tell from the HTTP response alone — see the clarified implications above. The original asks (BUYPASS provisioning, ticket reset, keyed entry, master key) remain valid, but Fiserv should be asked to look at the portal diagnostic for our specific runs to disambiguate.
 
 ---
 
