@@ -3,7 +3,9 @@
     "allow": [
       "Bash(grep -A 30 \"POSEntryModeType\" /Users/uygar/codebase/softpay/fiserv-usa-analysis/SDK_RSO024/**/*.xsd)",
       "Bash(javac FullProbe.java)",
-      "Bash(java FullProbe)"
+      "Bash(java FullProbe)",
+      "Bash(grep -i \"\\\\.DS_Store$\")",
+      "Bash(git rm:*)"
     ]
   }
 }
