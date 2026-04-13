@@ -18,7 +18,7 @@
 - [Step 5 - Security & Key Management](#step-5--security--key-management)
 - [Step 6 - EMV & Kernel Data](#step-6--emv--kernel-data)
 - [Step 7 - Settlement & Reconciliation](#step-7--settlement--reconciliation)
-- [Step 8 - Merchant Onboarding & PayFac Requirements](#step-8--merchant-onboarding--payfac-requirements)
+- [Step 8 - Merchant Onboarding](#step-8--merchant-onboarding)
 - [Step 9 - Certification & Test Requirements](#step-9--certification--test-requirements)
 - [Step 10 - Special Features & Optional Capabilities](#step-10--special-features--optional-capabilities)
 - [Step 11 - API-Specific Details](#step-11--api-specific-details)
@@ -34,51 +34,89 @@
 
 | Aspect | Detail |
 |---|---|
-| **Supported?** | Yes — via `CancelDeferredAuth` transaction type and Appendix Z of the UMF Specification |
-| **Transaction Type** | `CancelDeferredAuth` is a defined transaction type in the UMF spec (UMF_RSO024, Section: Transaction Types) |
-| **Mechanism** | The UMF spec includes a `CancelDeferredAuth` transaction type, indicating that deferred (store-and-forward) authorizations are supported. This allows a terminal to queue an authorization when offline and submit it once connectivity is restored. Cancellation of a deferred auth is also supported. |
-| **Required Fields** | Standard `CommonGrp` fields plus `OrigAuthGrp` (Original Authorization Group) referencing the deferred transaction |
-| **Response Handling** | Standard response codes apply; host may decline if the deferred window has expired |
-| **Reconciliation** | Deferred authorizations settle through the same batch process once submitted online |
-| **Edge Cases** | If connectivity is lost for an extended period, the deferred auth may be declined by the issuer. Time limits for deferred submission are not explicitly stated in the spec. |
+| **Supported?** | **Unknown — needs clarification from Fiserv.** The UMF XSD defines `CancelDeferredAuth` as a TxnType, but this is a **cancellation** mechanism only. No TxnType exists in the XSD for **submitting** a deferred/offline authorization (e.g., no `DeferredAuthorization`, `OfflineAuth`, or `SAFAuthorization`). |
+| **What we found** | The XSD (UMF_XML_SCHEMA.xsd, `TxnTypeType` enumeration) lists 40 transaction types. `CancelDeferredAuth` is present, but it requires `OrigAuthGrp` — meaning it references an **already-submitted** deferred auth. The submission mechanism itself is not defined in the available SDK materials. |
+| **SAF references** | The XSD contains SAF-related fields (`DSAFTblVer`, `HSAFTblVer`, `TLSAFBlk`, `SubFileType=SAF`) but these appear related to EMV terminal file management, not transaction submission. |
+| **Missing pieces** | No TxnType for submitting deferred auth. No offline/deferred indicator flag on standard `Authorization`. No documentation of the submission flow in the SDK. The referenced "Appendix Z" was not found in the available materials. |
+| **SoftPOS relevance** | A SoftPOS device loses connectivity more often than a fixed terminal. If deferred auth is not supported, Softpay must queue transactions locally and submit them as standard `Authorization` messages when connectivity returns — but this has different risk and compliance implications. |
 
-**Open Questions:**
-- What is the maximum time window for submitting a deferred authorization?
-- Are there specific card brand restrictions on deferred authorizations for contactless/SoftPOS?
-- Is `CancelDeferredAuth` the only mechanism, or can Softpay implement its own store-and-forward queue using standard `Authorization` messages?
-- Does Fiserv require any special boarding flags to enable deferred auth?
+**Open Questions (high priority — blocks offline flow design):**
+- Does Fiserv Rapid Connect support submitting deferred/offline authorizations? If so, what is the mechanism — a special TxnType, a flag on standard `Authorization`, or something else?
+- `CancelDeferredAuth` exists in the XSD — what does it cancel, and how was the original deferred auth submitted?
+- Can Softpay implement store-and-forward by queuing standard `Authorization` messages and submitting them when online, or does Fiserv require a specific deferred auth flow?
+- Are there time limits for deferred submission?
+- Are there card brand restrictions on deferred auth for contactless/SoftPOS?
+- Does Fiserv require special boarding flags to enable deferred auth?
 
 ### 0.2 Tipping
 
 | Aspect | Detail |
 |---|---|
-| **Supported?** | **Yes** — "Tip Amount" is listed in the Portal Definitions as a feature and **is selected** in the RSO024 Project Profile. It is described as a "Reporting field from Rapid Connect to CLX for Quick Service Restaurant industry only." |
-| **Message Flow** | For Restaurant industry: Initial authorization (pre-tip) followed by a `Completion` with the final amount including tip. The `AdditlAmtGrp` (Additional Amount Group) supports `AddlAmtType` values including tip-related amounts. |
-| **Required Fields** | `AdditlAmtGrp.AddlAmtType` with tip value, final `TxnAmt` in `Completion` reflecting the adjusted total |
-| **Response Handling** | The authorization response confirms the pre-tip amount; the Completion confirms the final amount with tip |
-| **Reconciliation** | Settlement is based on the Completion amount (which includes tip), not the initial authorization |
-| **Edge Cases** | Tip adjustments must be submitted before batch close. The "Tip Amount" feature in the Portal appears to be a reporting-only field for QSR, not a full tipping workflow. |
-| **Project Profile Status** | **SELECTED** — "Tip Amount" is checked in the RSO024 Project Profile. The Restaurant industry IS also selected, which supports the standard auth-then-complete-with-tip flow. |
+| **Supported?** | **Yes** — "Tip Amount" is selected in the RSO024 Project Profile (reporting field for QSR). Tipping is supported through the standard dual-message flow. |
+| **Project Profile Status** | **SELECTED** — "Tip Amount" is checked. Restaurant industry is also selected. |
+
+#### Two supported tipping flows
+
+**Flow A — Tip-before-auth (Softpay preferred):**
+The SoftPOS app collects the tip from the cardholder **before** sending the authorization. The `Authorization` is sent for the full amount (service + tip), and the `Completion` captures the same amount. This is the standard Softpay flow and is fully compatible with Fiserv — `TxnAmt` is simply an amount; the protocol does not distinguish between "service" and "tip" portions at the authorization level.
+
+| Step | Message | TxnAmt | Notes |
+|---|---|---|---|
+| 1. Cardholder taps | — | — | Card read, EMV data captured |
+| 2. App shows tip screen | — | — | Customer selects tip |
+| 3. Authorization | `TxnType=Authorization` | Service + tip (e.g., $58.00) | Full amount authorized |
+| 4. Completion | `TxnType=Completion` | Same $58.00 | Auth and Completion amounts match — no tolerance needed |
+
+- `FirstAuthAmt` = `TotalAuthAmt` = Completion `TxnAmt` (all the same amount)
+- No 20% tolerance invoked since Completion = Authorization amount
+- `TipAmt` in `AddtlAmtGrp` can optionally be sent for reporting purposes
+- Works for **all industries** (Retail, QSR, Restaurant, Supermarket) — not limited to Restaurant MCC
+
+**Flow B — Tip-after-auth (traditional restaurant flow):**
+The authorization is sent for the subtotal only. After the cardholder adds a tip (e.g., on a paper receipt), the Completion is sent with the adjusted total. This is the traditional restaurant model.
+
+| Step | Message | TxnAmt | Notes |
+|---|---|---|---|
+| 1. Cardholder taps | — | — | Card read |
+| 2. Authorization | `TxnType=Authorization` | Subtotal only (e.g., $50.00) | Pre-tip amount |
+| 3. Customer adds tip | — | — | E.g., $8.00 tip on receipt |
+| 4. Completion | `TxnType=Completion` | Subtotal + tip ($58.00) | Exceeds auth — 20% tolerance applies |
+
+- `FirstAuthAmt` = $50.00, `TotalAuthAmt` = $50.00, Completion `TxnAmt` = $58.00
+- Card brand rules allow up to **20% tolerance** between auth and completion for Restaurant MCCs
+- Tip adjustment must be submitted **before merchant cut-off** for the day
+- Primarily for **Restaurant industry** (MCC 5812) where tip is added after card leaves customer
+
+#### Reporting fields
+
+| Field | Type | Notes |
+|---|---|---|
+| `TipAmt` | `AddlAmtType` in `AddtlAmtGrp` | Optional reporting field — flows to downstream reporting (CLX). QSR industry only per Portal Definitions. |
+| `Tip` | `AddlAmtType` in `AddtlAmtGrp` | Limited platform availability; QSR only. |
+
+#### Recommendation
+
+**Use Flow A (tip-before-auth) as the default.** It is simpler, works across all industries, avoids the 20% tolerance dependency, and matches Softpay's existing flow on other acquirers. Flow B should only be used if the merchant workflow requires tip adjustment after the card has left the customer (e.g., table-service restaurants with paper receipts).
 
 **Open Questions:**
-- "Tip Amount" is selected in the profile — confirm whether the Restaurant industry's standard auth+completion flow (with adjusted amount for tip) is the recommended approach, or if additional configuration is needed.
-- Is there a percentage cap on tip amounts relative to the original authorization?
-- Can tipping be supported in Retail/QSR and Supermarket industries, or is it limited to Restaurant?
-- Should "Anticipated Amount" or "Anticipated Settlement Amount" also be enabled for tip scenarios?
+- Confirm that Flow A (full amount including tip in Authorization, same amount in Completion) is accepted without issues across all three RSO024 industries (Restaurant, Retail/QSR, Supermarket).
+- Is the `TipAmt` reporting field in `AddtlAmtGrp` optional or required when tipping is enabled in the project profile?
+- Is there a percentage cap on tip relative to the service amount (beyond the 20% tolerance rule for Flow B)?
+- Can tipping be supported for Retail (MCC 5399) and Supermarket (MCC 5411) industries, or only Restaurant (MCC 5812)?
 
 ### 0.3 Dynamic Currency Conversion (DCC)
 
-| Aspect | Detail |
-|---|---|
-| **Supported?** | **Yes** — DCC is explicitly selected in the RSO024 Project Profile under "International Currency Solutions." |
-| **Mechanism** | DCC (also called Cardholder Preferred Currency / CPC) allows foreign cardholders to see the transaction amount converted to their home currency at the point of sale (Portal Definitions). Available for **Visa and Mastercard only**. |
-| **Message Flow** | 1. POS initiates a `Verification` or first authorization to determine card eligibility for DCC. 2. If eligible, the POS presents the cardholder with a choice of currencies. 3. If the cardholder selects their home currency, the POS submits the transaction with the DCC Group populated (conversion rate, original cardholder currency, conversion date). 4. The transaction processes in the cardholder's currency. |
-| **Required Fields** | `DCCGrp` in the UMF XML containing: DCC conversion rate, original cardholder currency code, conversion date. `TxnCrncy` set to the DCC currency. Per the EMV Guide (RQ 4200): Tag 5F2A (Transaction Currency Code) must be set to the DCC currency before 1st Generate AC for contact transactions. |
-| **Response Handling** | Standard approval/decline. The response reflects the DCC currency and amount. |
-| **Reconciliation** | Settlement occurs in the DCC currency. Merchant funding remains in USD. |
-| **Edge Cases** | Per EMV Guide: DCC is **not supported below Contactless CVM Limit** (RQ 4201). For contactless transactions, the 1st Generate AC cryptogram is generated with the **original currency**, not the converted currency (BP 1200). DCC eligibility should NOT be determined using Application Currency Code Tag 9F42 (BP 1100). CAID (Common Debit AID) transactions are NOT DCC eligible. |
-| **Card Brand Restrictions** | Visa and Mastercard only. Amex, Discover, Diners Club are not eligible for DCC. |
-| **AID Selection for DCC** | Per EMV Guide: If both CAID and Global Credit AID are present on the card, the Global Credit AID must be selected for DCC eligibility. If only CAID is present, the card is not DCC eligible. |
+| Aspect                      | Detail                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Supported?**              | **Yes** — DCC is explicitly selected in the RSO024 Project Profile under "International Currency Solutions."                                                                                                                                                                                                                                                                                                             |
+| **Mechanism**               | DCC (also called Cardholder Preferred Currency / CPC) allows foreign cardholders to see the transaction amount converted to their home currency at the point of sale (Portal Definitions). Available for **Visa and Mastercard only**.                                                                                                                                                                                   |
+| **Message Flow**            | 1. POS initiates a `Verification` or first authorization to determine card eligibility for DCC. 2. If eligible, the POS presents the cardholder with a choice of currencies. 3. If the cardholder selects their home currency, the POS submits the transaction with the DCC Group populated (conversion rate, original cardholder currency, conversion date). 4. The transaction processes in the cardholder's currency. |
+| **Required Fields**         | `DCCGrp` in the UMF XML containing: DCC conversion rate, original cardholder currency code, conversion date. `TxnCrncy` set to the DCC currency. Per the EMV Guide (RQ 4200): Tag 5F2A (Transaction Currency Code) must be set to the DCC currency before 1st Generate AC for contact transactions.                                                                                                                      |
+| **Response Handling**       | Standard approval/decline. The response reflects the DCC currency and amount.                                                                                                                                                                                                                                                                                                                                            |
+| **Reconciliation**          | Settlement occurs in the DCC currency. Merchant funding remains in USD.                                                                                                                                                                                                                                                                                                                                                  |
+| **Edge Cases**              | Per EMV Guide: DCC is **not supported below Contactless CVM Limit** (RQ 4201). For contactless transactions, the 1st Generate AC cryptogram is generated with the **original currency**, not the converted currency (BP 1200). DCC eligibility should NOT be determined using Application Currency Code Tag 9F42 (BP 1100). CAID (Common Debit AID) transactions are NOT DCC eligible.                                   |
+| **Card Brand Restrictions** | Visa and Mastercard only. Amex, Discover, Diners Club are not eligible for DCC.                                                                                                                                                                                                                                                                                                                                          |
+| **AID Selection for DCC**   | Per EMV Guide: If both CAID and Global Credit AID are present on the card, the Global Credit AID must be selected for DCC eligibility. If only CAID is present, the card is not DCC eligible.                                                                                                                                                                                                                            |
 
 **Open Questions:**
 - Who provides the DCC rate feed — Fiserv or a third-party DCC provider?
@@ -111,7 +149,7 @@
 
 | Feature | Status | Notes |
 |---|---|---|
-| Deferred Authorizations | Supported (via `CancelDeferredAuth`) | Needs clarification on time limits and SoftPOS applicability |
+| Deferred Authorizations | **Unknown** — only `CancelDeferredAuth` found in XSD (cancellation, not submission). No TxnType for submitting deferred auth. | **Must clarify with Fiserv** before designing offline flow |
 | Tipping | **Selected and supported** | Auth+Completion flow available for Restaurant; "Tip Amount" feature explicitly selected in project profile |
 | Dynamic Currency Conversion (DCC) | **Selected and supported** | Visa and Mastercard only; not below contactless CVM limit |
 | Surcharge | Available but **not selected** | Requires Fiserv approval and contract; credit-only; state restrictions |
@@ -162,10 +200,12 @@ The root element is `<GMF>` containing a single request or response child elemen
 
 Rapid Connect supports **both** single-message and dual-message flows:
 
-- **Single-message (Sale):** `TxnType=Sale` — authorization + capture in one request. The transaction is authorized and automatically captured for settlement. **Note: Sale is NOT selected in the RSO024 project profile.**
-- **Dual-message (Authorization + Completion):** `TxnType=Authorization` followed by `TxnType=Completion` — the authorization is sent first, and a separate completion/capture message is sent later (e.g., after adding a tip, adjusting the amount, or at end-of-day). **This is the selected flow for RSO024.**
+- **Single-message (Sale):** `TxnType=Sale` — authorization + capture in one request. The transaction is authorized and immediately captured for settlement. **Not selected for RSO024 — see rationale below.**
+- **Dual-message (Authorization + Completion):** `TxnType=Authorization` followed by `TxnType=Completion` — the authorization is sent first, and a separate completion/capture message is sent later. **This is the selected flow for RSO024.**
 
-**Settlement Methodology:** The RSO024 project is configured for **Host Capture** (automated settlement), meaning Fiserv manages the settlement process after transactions are authorized/captured. All purchases use the dual-message Authorization + Completion flow.
+**Settlement Methodology:** The RSO024 project is configured for **Host Capture** (automated settlement). Host Capture runs on a periodic batch cycle (every X minutes), automatically settling all completed transactions that occurred before the batch run time.
+
+**Why dual-message is required (confirmed in Fiserv meeting):** With Host Capture running periodic batches, a single-message Sale would be captured and batched almost immediately — leaving no window for voids. Softpay requires at least **15 minutes** for void support. The dual-message flow solves this: the Authorization holds funds without capturing, giving Softpay full control over when to send the Completion. A Void can be sent any time before the Completion (or within 25 minutes of the auth). This is why Sale is intentionally excluded from the project profile.
 
 ### 1.4 XML Group Structure
 
@@ -245,56 +285,40 @@ Each request/response is composed of **modular XML groups** in a defined sequenc
 
 ### 2.1 Card Brands Selected in Project Profile (RSO024)
 
-| Card Brand | Selected | Card-Present | Notes |
-|---|---|---|---|
-| **Visa** | Yes | Yes | Full support including contactless, EMV, DCC |
-| **Mastercard** | Yes | Yes | Full support including contactless, EMV, DCC |
-| **American Express** | Yes | Yes | Contactless CVM limit: $50 |
-| **Discover** | Yes | Yes | Contactless CVM limit: $25 |
-| **Diners Club** | Yes | Yes | Processed through Discover network |
-| JCB | No | — | Not selected but supported by Rapid Connect; consider for Phase 2 |
-| Maestro International | No | — | Not selected |
-| UnionPay | No | — | Not selected |
-
+| Card Brand           | Card-Present | Notes                                                                                |
+| -------------------- | ------------ | ------------------------------------------------------------------------------------ |
+| **Visa**             | Yes          | Full support including contactless, EMV, DCC                                         |
+| **Mastercard**       | Yes          | Full support including contactless, EMV, DCC                                         |
+| **American Express** | Yes          | Test Contactless CVM limit: $10.00 (credit) / $200.01 (debit) per EMV Guide Table 24 |
+| **Discover**         | Yes          | Test Contactless CVM limit: $50.00 per EMV Guide Table 24                            |
+| **Diners Club**      | Yes          | Processed through Discover network                                                   |
+Question: Table 24 in the EMV Guide references test CVM limits. Does Fiserv provide general recommendations for Contactless CVM limits in a production environment?
 ### 2.2 Debit Card Types
 
-| Type | Selected | Notes |
-|---|---|---|
-| PIN Debit | **Yes** | Selected — significant for SoftPOS as online PIN on COTS device has MPoC implications; PIN encryption required |
-| PINless POS Debit | **Yes** | Selected — debit routing without PIN |
-| Signature Debit | **No** | Not selected |
-| ConnectPay | **No** | Not selected |
+| Type | Notes |
+|---|---|
+| **PIN Debit** | Selected — significant for SoftPOS as online PIN on COTS device has MPoC implications; PIN encryption required |
+| **PINless POS Debit** | Selected — debit routing without PIN |
 
-**Important Note:** PIN Debit and PINless POS Debit are both selected. This means debit routing is enabled for cost optimization (Durbin compliance). PIN Debit requires implementation of `PINGrp` with PIN encryption (DUKPT or Master Session). Online PIN for contactless on a COTS/SoftPOS device has MPoC implications that must be clarified with Fiserv. PINless POS Debit provides debit routing without PIN entry.
+**Important Note:** PIN Debit and PINless POS Debit are both selected. This means debit routing is enabled for cost optimization (Durbin compliance). PIN Debit requires implementation of `PINGrp` with PIN encryption via **Master Session Encryption** (selected in the project profile). Online PIN for contactless on a COTS/SoftPOS device has MPoC implications that must be clarified with Fiserv. PINless POS Debit provides debit routing without PIN entry.
 
 ### 2.3 Mobile/Digital Wallet Support
 
-| Wallet | Selected | Notes |
-|---|---|---|
-| **Apple Pay** | Yes | NFC contactless; CDCVM supported |
-| **Google Pay** | Yes | NFC contactless; CDCVM supported |
-| **Samsung Pay** | Yes | NFC contactless; CDCVM supported |
-| Click to Pay | No | Not selected |
+| Wallet | Notes |
+|---|---|
+| **Apple Pay** | NFC contactless; CDCVM supported |
+| **Google Pay** | NFC contactless; CDCVM supported |
+| **Samsung Pay** | NFC contactless; CDCVM supported |
 
 ### 2.4 Entry Modes Selected
 
-| Entry Mode | Selected | Relevant POS Entry Mode Codes |
-|---|---|---|
-| **Swiped** | Yes | Magnetic stripe (not applicable for SoftPOS — no MSR reader) |
-| Keyed | **No** | Not selected |
-| **Contactless** | Yes | NFC tap (POS Entry Mode 07/91 for contactless EMV) |
-| In Application | **No** | Not selected |
-| **EMV (Contact)** | Yes | Selected — but SoftPOS has no chip card reader (see open question) |
-| Barcode | No | Not selected |
-
-**Softpay Assessment:** For a SoftPOS solution, the primary entry mode will be **Contactless** (NFC tap). "Swiped" is selected but not physically applicable to SoftPOS devices (no MSR hardware). "EMV" (contact chip) is selected in the project profile, but SoftPOS devices do not have a chip card reader — **this should be clarified with Fiserv** (whether it is intentional or a configuration error). "Keyed" and "In Application" are not selected.
-
-### 2.5 Brands Not Selected — Future Phase Candidates
-
-| Brand/Type | Reason to Consider |
+| Entry Mode | Relevant POS Entry Mode Codes |
 |---|---|
-| JCB | Growing card base in the US; processed via Discover network |
-| Click to Pay | Discover digital wallet; not currently selected |
+| **Swiped** | Magnetic stripe (not applicable for SoftPOS — no MSR reader) |
+| **Contactless** | NFC tap (POS Entry Mode 07/91 for contactless EMV) |
+| **EMV (Contact)** | Selected — but SoftPOS has no chip card reader (see open question) |
+
+**Softpay Assessment:** For a SoftPOS solution, the primary entry mode will be **Contactless** (NFC tap). "Swiped" is selected but not physically applicable to SoftPOS devices (no MSR hardware). "EMV" (contact chip) is selected in the project profile, but SoftPOS devices do not have a chip card reader — **this should be clarified with Fiserv** (whether it is intentional or a configuration error).
 
 ---
 
@@ -302,48 +326,25 @@ Each request/response is composed of **modular XML groups** in a defined sequenc
 
 ### 3.1 Core Transaction Types (Selected in Project Profile)
 
-| Transaction Type | Selected | Description | Softpay Relevance |
-|---|---|---|---|
-| **Authorization** | Yes | Auth without capture (dual-message) | Core — pre-authorization |
-| Sale | **No** | Auth + capture combined (single-message) | Not selected — all purchases use dual-message Authorization + Completion |
-| **Completion** | Yes | Capture a prior authorization | Core — settle after auth (e.g., with tip) |
-| **Refund** | Yes | Credit/return funds to cardholder | Core — returns processing |
-| **Online Refund** | Yes | Online refund authorization | Variant of Refund |
-| **PIN Debit Refund** | Yes | Refund for PIN Debit transactions | Required for PIN Debit support |
-| **Void/Full Reversal** | Yes | Cancel/fully reverse a transaction | Core — cancellation |
-| **Void of Refund** | Yes | Void a refund transaction | Core — cancel a refund |
-| Partial Reversal | **No** | Reverse amount less than original | Not selected |
-| Incremental Authorization | **No** | Add amount to existing auth | Not selected |
-| Verification | **No** | Verify card is active (zero-dollar) | Not selected |
-| Estimated Authorization | **No** | Auth when final amount unknown | Not selected |
-
-**Important:** Sale is not selected. All purchase transactions must use the dual-message flow: Authorization followed by Completion. This is consistent with tipping workflows (authorize pre-tip, complete with final amount including tip).
-
-### 3.2 Batch/Settlement & Key Management Operations (Selected)
-
-| Transaction Type | Selected | Description |
+| Transaction Type | Description | Softpay Relevance |
 |---|---|---|
-| Batch Open | **No** | Not selected |
-| Batch Close | **No** | Not selected |
-| Generate Key | **No** | Not selected |
-| **Master Session Encryption (HSM)** | Yes | Key management — session encryption |
-| MAC Master Session | **No** | Not selected |
+| **Authorization** | Auth without capture (dual-message) | Core — pre-authorization |
+| **Completion** | Capture a prior authorization | Core — settle after auth (e.g., with tip) |
+| **Refund** | Credit/return funds to cardholder | Core — returns processing |
+| **Online Refund** | Online refund authorization | Variant of Refund |
+| **PIN Debit Refund** | Refund for PIN Debit transactions | Required for PIN Debit support |
+| **Void/Full Reversal** | Cancel/fully reverse a transaction | Core — cancellation |
+| **Void of Refund** | Void a refund transaction | Core — cancel a refund |
 
-### 3.3 Administrative Operations
+**Design Decision (confirmed with Fiserv):** `Sale` (single-message auth+capture) is intentionally excluded. Host Capture runs periodic batches (every X minutes), which would capture Sale transactions almost immediately — leaving no void window. Softpay requires at least 15 minutes for voids. The dual-message flow (Authorization → Completion) gives Softpay control over capture timing: voids can be sent before the Completion, and the Completion is sent only when the transaction is final.
 
-| Transaction Type | Selected | Description |
-|---|---|---|
-| Adjustment of Sale | **No** | Not selected |
-| Adjustment of Refund | **No** | Not selected |
-| Load | **No** | Not selected |
-| Cashout | **No** | Not selected |
-| Fraud Score Only | **No** | Not selected |
-| Product Eligibility Inquiry | **No** | Not selected |
-| Change | **No** | Not selected |
+### 3.2 Key Management Operations (Selected)
 
-**Note:** Void of Refund is listed in Section 3.1 as a selected core transaction type.
+| Transaction Type | Description |
+|---|---|
+| **Master Session Encryption (HSM)** | Key management — session encryption |
 
-### 3.4 Reversal Types & Support Matrix
+### 3.3 Reversal Types & Support Matrix
 
 | Reversal Type | XML Value | Description | Applicable To |
 |---|---|---|---|
@@ -359,31 +360,9 @@ Each request/response is composed of **modular XML groups** in a defined sequenc
 - Timeout Reversals: Network-specific reference fields (Visa `TransactionIdentifier`, Mastercard `BankNetData`, Amex `AmExTranID`, Discover `DiscoverNRID`) are now **exempt** for TORs (per 2026 UMF Changes)
 - `Completion` has been added to the Void/Full Reversal support column for Visa, Amex, Discover, JCB, Diners, MasterCard, UnionPay (2026 change)
 
-### 3.5 Transaction Types Not Selected but Available
+### 3.4 Gap: Partial Authorization
 
-| Transaction Type | Notes |
-|---|---|
-| **Sale** | Not selected — confirm this is intentional and all purchases should use dual-message Authorization + Completion |
-| Balance Inquiry | Could be useful for prepaid; not currently selected |
-| Partial Authorization | Not explicitly selected — **should be confirmed** as it is generally required for card-present environments |
-| Partial Reversal | Not selected |
-| Incremental Authorization | Not selected |
-| Verification | Not selected — could be useful for DCC eligibility checks |
-| Estimated Authorization | Not selected |
-| Debit Pre-Authorization | Could be relevant now that PIN Debit is selected |
-| EchoTest | Network health check — should be confirmed if needed for keepalive |
-| HostTotals | Settlement reporting — may be useful for reconciliation |
-| FileDownload | EMV key and configuration downloads |
-| Batch Open / Batch Close | Not selected — Host Capture should manage settlement automatically |
-| Generate Key | Not selected |
-| Adjustment of Sale / Adjustment of Refund | Not selected |
-| Cashout / Load | Not selected |
-| Fraud Score Only | Not selected |
-| Product Eligibility Inquiry | Not selected |
-
-**Critical Gap: Partial Authorization** — Per Portal Definitions: "Partial Authorization support is generally required for all Merchants in card-present environments in order to accommodate cardholder accounts where limited funds may be available (for example Debit or Open Loop Prepaid cards)." This is especially important now that PIN Debit and PINless POS Debit are selected. This should be verified with Fiserv.
-
-**Critical Gap: Sale Transaction Type** — Sale (single-message auth+capture) is not selected. Confirm with Fiserv that this is intentional and all purchases should follow the dual-message Authorization + Completion flow.
+Per Portal Definitions: *"Partial Authorization support is generally required for all Merchants in card-present environments in order to accommodate cardholder accounts where limited funds may be available (for example Debit or Open Loop Prepaid cards)."* Partial Authorization is **not explicitly selected** in the current Project Profile — this should be verified with Fiserv, especially given that PIN Debit and PINless POS Debit are selected.
 
 ---
 
@@ -402,7 +381,7 @@ Each request/response is composed of **modular XML groups** in a defined sequenc
 
 Datawire is Fiserv's patented, PCI-DSS compliant IP-based transport network. Key characteristics:
 
-- **Scale:** 1M+ merchants, 30B+ transactions/year, 100% uptime track record, 20+ years operational
+- **Scale:** 1M+ merchants, 30B+ transactions/year (per Datawire Solution overview)
 - **Network Transit Time:** 30-60ms average within the Datawire network
 - **Redundancy:** Geographic and carrier diversity across North America, EMEA, APAC, LAC
 - **Connection Method:** Uses public internet — no VPN/MPLS/dedicated line required
@@ -553,9 +532,6 @@ The Datawire XML API provides:
 - **DNS Resolution** — resolve hostname for each non-session transaction (do not cache IPs)
 
 **Open Questions:**
-- ~~What are the specific Sandbox/Certification/Production base URLs for Datawire?~~ **ANSWERED** — see Section 4.4
-- ~~Are static IP whitelists required for Softpay's backend servers?~~ **ANSWERED** — Fiserv explicitly discourages IP-based rules; IPs are subject to change; authentication is per-transaction via MID/TID/DID
-- ~~Can the `EchoTest` transaction type be used for keepalive?~~ **ANSWERED** — **NO.** EchoTest must NOT be used over Datawire. Undocumented Datawire interactions void certification.
 - Is the staging environment shared for both Development and Certification, or are they separate?
 
 ---
@@ -576,46 +552,31 @@ The Datawire XML API provides:
 | **PIN Debit Selected** | **Yes** — PIN Debit is selected in the project profile |
 | **PINless POS Debit Selected** | **Yes** — PINless POS Debit is also selected |
 | **Online PIN for Contactless** | Required for PIN Debit transactions above CVM limit — **clarification needed** on how this works with SoftPOS/COTS devices under MPoC |
-| **PIN Block Format** | Must be confirmed with Fiserv (ISO-0 / ISO-4) |
-| **DUKPT/AES** | Must be confirmed — likely DUKPT or Master Session encryption for PIN |
+| **PIN Block Format** | ISO Format 0 (confirmed by XSD: `PINData` = `Len16HexString` = 16 hex chars = 8 bytes) |
+| **Encryption Method** | **Master Session Encryption** (selected in project profile; Softpay decision) |
 
 **PINGrp Implementation Required:** Since PIN Debit is selected, Softpay must implement the `PINGrp` (PIN Group) in the UMF spec with the following fields:
 
 | Field | Description |
 |---|---|
-| `PINData` | Encrypted PIN block |
-| `KeySerialNumData` | Key Serial Number for DUKPT |
-| `KeyOffset` | Key offset value |
-| `KeyMgtData` | Key management data |
-| `MSKeyID` | Master Session Key ID |
+| `PINData` | Encrypted PIN block (16 hex chars, ISO Format 0) |
+| `MSKeyID` | **Master Session Key ID** (from `EncryptionKeyRequest` response) |
 | `NumPINDigits` | Number of PIN digits entered |
-| `EnhKeyFmt` | Enhanced key format |
-| `EnhKeyMgtData` | Enhanced key management data |
-| `EnhKeyChkDig` | Enhanced key check digit |
-| `EnhKeySlot` | Enhanced key slot |
+| `EnhKeyFmt` | Enhanced key format (`T` = TR-31) |
+| `EnhKeyMgtData` | Enhanced key management data (up to 256 chars) |
+| `EnhKeyChkDig` | Enhanced key check digit (up to 6 hex chars) |
+| `EnhKeySlot` | Enhanced key slot (`1` or `2`) |
 
-**Critical Consideration:** Online PIN entry on a COTS/SoftPOS device has significant MPoC (Mobile Payments on COTS) implications. Softpay's certified PIN pad component handles PIN entry securely, but the interaction with Fiserv's PIN encryption requirements (key injection, DUKPT BDK provisioning, etc.) must be clarified.
+**Note:** Since Softpay will use **Master Session Encryption**, the `KeySerialNumData` (DUKPT KSN) and `KeyOffset` fields are not used. PINGrp will contain `PINData` + `MSKeyID`.
+
+**Critical Consideration:** Online PIN entry on a COTS/SoftPOS device has significant MPoC (Mobile Payments on COTS) implications. Softpay's certified PIN pad component handles PIN entry securely, but the interaction with Fiserv's Master Session key exchange process and HSM requirements must be clarified.
 
 **Open Questions for PIN Debit:**
-- What PIN encryption method does Fiserv require (DUKPT, AES-DUKPT, Master Session)?
-- What PIN block format is required (ISO-0 / ISO-4)?
-- How are DUKPT Base Derivation Keys (BDKs) provisioned for SoftPOS devices?
+- What is the process for obtaining the test master key for Sandbox/Certification?
 - Is online PIN supported for contactless transactions, or only for contact chip?
-- How does Fiserv handle the KSN (Key Serial Number) counter management for DUKPT?
-- Are test BDKs provided for Sandbox/Certification?
+- Are separate `EncryptionKeyRequest` calls needed per MID/TID combination?
 
-### 5.3 TransArmor Encryption (Not Selected)
-
-TransArmor (Fiserv's dual-layer tokenization + encryption solution) is **not selected** in the RSO024 Project Profile. Available options include:
-- Ingenico Onguard Encryption
-- AES DUKPT Encryption
-- TransArmor RSA Encryption
-- TransArmor VeriFone AES DUKPT Encryption
-- Multi-Pay Token
-
-**Assessment:** Since Softpay manages its own PCI-compliant environment and handles card data within the certified SoftPOS SDK, TransArmor may not be required. However, for merchants who want to store tokens for recurring transactions, Multi-Pay Token or Fiserv Network Tokens should be considered.
-
-### 5.4 TLS Requirements
+### 5.3 TLS Requirements
 
 | Requirement | Detail |
 |---|---|
@@ -647,7 +608,7 @@ Download from: `https://www.digicert.com/digicert-root-certificates.htm`
 Source: `Required_TLS_Ciphers_Secure_Transport_RapidConnect.pdf` (Rev 1.3, Sep 2025), `Required_Root_CA_Certificates_SecureTransport_RapidConnect.pdf`, `Datawire Compliance Test Form` (v3.4.7)
 | **Client Certificate** | Not required for Datawire API (authentication is per-transaction via MID/TID/DID) |
 
-### 5.5 Key Exchange & HSM
+### 5.4 Key Exchange & HSM
 
 | Aspect | Detail |
 |---|---|
@@ -657,24 +618,12 @@ Source: `Required_TLS_Ciphers_Secure_Transport_RapidConnect.pdf` (Rev 1.3, Sep 2
 | **Generate Key** | `TxnType=GenerateKey` — generates merchant-specific key |
 | **TR-31 Key Block** | Secure key exchange format wrapping session keys |
 
-### 5.6 Message Authentication (MAC)
-
-| Feature | Selected | Notes |
-|---|---|---|
-| MAC Master Session | **No** | Not selected |
-| MAC DUKPT | No | Not selected |
-
 **Open Questions:**
-- Can MAC validation be disabled during the development/sandbox phase?
-- What is the process for ordering test vs. production keys?
-- Who initiates the key exchange — Softpay or Fiserv?
-- What HSM integration is required on the Softpay side?
-- ~~Confirm TLS version requirement (TLS 1.2 minimum? TLS 1.3?).~~ **ANSWERED** — TLSv1.3 preferred + TLSv1.2 required; see Section 5.4
-- What PIN encryption method does Fiserv require for PIN Debit (DUKPT, AES-DUKPT, Master Session)?
-- What PIN block format is required (ISO-0 / ISO-4)?
-- How are DUKPT BDKs provisioned for SoftPOS devices at scale?
-- Are test BDKs available for Sandbox/Certification?
+- What is the process for ordering the test master key for Master Session Encryption (Sandbox/Certification)?
+- Who initiates the key exchange — Softpay or Fiserv? (Assumption: Softpay sends `EncryptionKeyRequest`)
+- What HSM integration is required on the Softpay side for decrypting the session key?
 - Is online PIN supported for contactless transactions on SoftPOS?
+- Are separate `EncryptionKeyRequest` calls needed per MID/TID combination?
 
 ---
 
@@ -693,12 +642,21 @@ Softpay is a **contactless-only** SoftPOS solution (no contact chip reader). Per
 
 ### 6.2 Contactless CVM Limits by Card Brand
 
-| Card Brand | Contactless CVM Limit (US) | Source |
-|---|---|---|
-| Visa | Variable (brand-configured) | EMV Implementation Guide |
-| Mastercard | $100 (raised 10/14/17) | EMV Implementation Guide |
-| American Express | $50 | EMV Implementation Guide |
-| Discover | $25 | EMV Implementation Guide |
+Test Contactless CVM Limit values from **Table 24 (EMV Test Parameter Considerations)**, Section 8.5, page 8-8 of the EMV Implementation Guide (v2025.RG20). Footnote 3: "Values set by Brand and subject to change."
+
+| Card Brand       | AID              | Test Contactless CVM Limit | Source                                    |
+| ---------------- | ---------------- | -------------------------- | ----------------------------------------- |
+| Visa Credit/Debit| A0000000031010   | $25.00                     | EMV Impl. Guide, Table 24, p. 8-8        |
+| Visa Interlink   | A0000000033010   | $0.00                      | EMV Impl. Guide, Table 24, p. 8-8        |
+| US Debit         | A0000000980840   | $25.00                     | EMV Impl. Guide, Table 24, p. 8-8        |
+| Mastercard       | A0000000041010   | $100.00                    | EMV Impl. Guide, Table 24, p. 8-8 (raised from $50, effective 10/14/17 per Sec. 5.4) |
+| Maestro          | A0000000043060   | $100.00                    | EMV Impl. Guide, Table 24, p. 8-8        |
+| Amex Credit      | A00000002501     | $10.00                     | EMV Impl. Guide, Table 24, p. 8-8        |
+| Amex Debit       | A00000002504     | $200.01                    | EMV Impl. Guide, Table 24, p. 8-8        |
+| Discover Common  | A0000001524010   | $50.00                     | EMV Impl. Guide, Table 24, p. 8-8        |
+| Discover D-PAS   | A0000001523010   | $50.00                     | EMV Impl. Guide, Table 24, p. 8-8        |
+
+Table 23 (Sec. 8.5, p. 8-7) lists `Contactless CVM Limit` as a common AID parameter that "Vary by Brand/AID". Section 5.4 (p. 5-4) notes: Contactless CVM Limit for AFD will be $0 for all Brands.
 
 **Below CVM Limit:** No CVM required (tap-and-go)  
 **Above CVM Limit:** CVM required — for SoftPOS, this is CDCVM (Consumer Device CVM) for digital wallets, or online PIN (PIN Debit is selected and requires PIN encryption implementation)
@@ -792,52 +750,47 @@ Per the EMV Guide, **all three methods must be supported** (RQ 1700):
 |---|---|
 | **Settlement Methodology** | **Host Capture** (automated settlement) |
 | **Settlement Indicator** | Controls timing: 1 = day-based, 2 = mid-day, 3 = real-time |
+| **Batch Cycle** | Periodic — runs every X minutes (exact interval TBD), captures all completed transactions before the batch run time |
 | **Batch Operations** | OpenBatch → BatchSettleDetail → CloseBatch |
 
-**Host Capture** means Fiserv automatically settles transactions after they are captured (via Sale or Completion). The merchant does not need to manually initiate settlement.
+**Host Capture** means Fiserv automatically settles transactions after they are captured (via Completion). The merchant does not need to manually initiate settlement. The batch cycle runs periodically (every X minutes), sweeping all completed transactions into settlement.
+
+**Implication for voids (confirmed in Fiserv meeting):** Because Host Capture batches run frequently, any transaction that has been completed (Completion sent) will be swept into settlement quickly. This is why dual-message is required — between Authorization and Completion, the transaction is authorized but not yet captured, so it can be voided. Once Completion is sent, the void window is limited to the time before the next batch run.
 
 ### 7.2 Settlement Flows by Transaction Type
 
 | Scenario | Flow |
 |---|---|
-| **Dual-message (Auth + Completion)** | Authorization → Completion → auto-settled by host (this is the selected purchase flow) |
+| **Dual-message (Auth + Completion)** | Authorization → [void window] → Completion → auto-settled in next batch run (this is the selected purchase flow) |
 | **Refund** | Refund → auto-settled |
 | **PIN Debit Refund** | PIN Debit Refund → auto-settled |
 | **Void (within 25 min)** | Void reverses the original transaction before settlement |
 | **Void of Refund** | Void reverses a refund transaction |
 | **Void after settlement** | Becomes a credit/refund |
 
-**Note:** Sale (single-message) is not selected in the project profile. All purchases use the dual-message Authorization + Completion flow.
+**Note:** Sale is intentionally excluded — see Section 1.3 for rationale (Host Capture batch timing vs. void window requirement).
 
 ### 7.3 Batch Operations
 
-Although Host Capture is selected (meaning Fiserv manages settlement automatically), batch operations are still available for reporting and reconciliation:
+Although Host Capture is selected (meaning Fiserv manages settlement automatically via periodic batch runs), batch operations are still available for reporting and reconciliation:
 
 | Transaction Type | Description |
 |---|---|
 | `OpenBatch` | Initiate batch transfer from POS to host |
 | `BatchSettleDetail` | Send batch settlement details |
 | `CloseBatch` | End of batch indicator |
-| `HostTotals` | Request host totals report (not currently selected) |
 
-### 7.4 Settlement Transaction Types (Not Selected)
+### 7.4 Open Questions
 
-The following settlement reporting features are available but not selected:
-- Daily Totals Report with Close
-- Daily Totals Report
-- Shift Totals Report
-
-**Open Questions:**
 - With Host Capture, does Softpay still need to send OpenBatch/CloseBatch, or are these only needed for Terminal Capture?
 - How does Softpay receive settlement confirmations/reports from Fiserv?
 - What is the daily settlement cut-off time?
-- Should "HostTotals" be enabled for end-of-day reconciliation?
 - What happens to a Void submitted after the daily cut-off? Does the response indicate that clearing has already occurred?
 - Are settlement files or reports provided (e.g., via SFTP or API)?
 
 ---
 
-## Step 8 — Merchant Onboarding & PayFac Requirements
+## Step 8 — Merchant Onboarding
 
 ### 8.1 Current Configuration
 
@@ -852,13 +805,13 @@ The following settlement reporting features are available but not selected:
 
 Fiserv assigns the following identifiers:
 
-| Identifier | Description | Test Values |
-|---|---|---|
-| **MID (Merchant ID)** | Up to 16 alphanumeric characters | RCTST1000119068/69/70 |
-| **TID (Terminal ID)** | Up to 8 alphanumeric characters | 001, 002, 003 |
-| **Group ID (GID)** | 5-13 alphanumeric characters | 20001 |
-| **TPP ID** | 6 alphanumeric characters (Fiserv-assigned) | RSO024 |
-| **DID (Datawire ID)** | Assigned during first transaction | Auto-generated |
+| Identifier            | Description                                 | Test Values           |
+| --------------------- | ------------------------------------------- | --------------------- |
+| **MID (Merchant ID)** | Up to 16 alphanumeric characters            | RCTST1000119068/69/70 |
+| **TID (Terminal ID)** | Up to 8 alphanumeric characters             | 001, 002, 003         |
+| **Group ID (GID)**    | 5-13 alphanumeric characters                | 20001                 |
+| **TPP ID**            | 6 alphanumeric characters (Fiserv-assigned) | RSO024                |
+| **DID (Datawire ID)** | Assigned during first transaction           | Auto-generated        |
 
 **Production credentials** differ in length from test MID/TID/GID.
 
@@ -882,29 +835,6 @@ Per the Datawire Overview:
 2. **Datawire Provisioning** — Automatic via MAS XML API (SSL) or manual via web GUI
 3. **Network Propagation** — Datawire propagates credentials to all Client Edge Nodes
 4. **Registration** — First transaction: terminal sends MID/TID/ServiceID/AppID → Datawire validates → creates DID → DID used for all subsequent transactions
-
-### 8.5 Payment Facilitator Considerations
-
-Although PayFac is not currently selected, if Softpay operates as a Payment Facilitator in the US:
-
-| Model | Description |
-|---|---|
-| Global Single MID | All sub-merchants under one MID |
-| Global Multi MID | Each sub-merchant has own MID |
-
-**PayFac Required Fields (from UMF Spec):**
-- `PFGrp` (Payment Facilitator Group) in the XML
-- Sub-merchant identification data
-- Additional compliance fields per card brand rules
-
-**Open Questions:**
-- How are production MIDs/TIDs assigned for each Softpay merchant?
-- Can Softpay use the Rapid Connect portal API to programmatically onboard merchants, or is it a manual process?
-- What is the process for assigning MID/TID values and delivering them to Softpay's backend?
-- If Softpay operates as a PayFac, what additional fields and certification are required?
-- Is there an API-based merchant boarding process equivalent to Softpay's MIA (Merchant Integration API)?
-- What KYC/KYB documentation is required, and who is responsible?
-- How is the Datawire DID managed at scale (thousands of merchant devices)?
 
 ---
 
@@ -943,18 +873,20 @@ Test cases cover:
 
 ### 9.4 Test Card Numbers (Ad Hoc Testing)
 
-| Card Brand | Test PAN |
-|---|---|
-| Visa | 4761530001111118 |
-| MasterCard | 5137221111116668 |
-| Discover | 6011208701117775 |
-| Amex | 3710300891113338 |
-| Diners Club | 36185900011112 |
-| JCB | 3566002345432153 |
-| PIN Debit | 4017779991113335 |
-| EBT | 5076800002222223 |
+> **Note:** The PANs below could not be verified against any document in the RSO024 SDK package. The verified test cards from `TestTransactions_RSO024.xlsx` are listed in the Java examples README (Section "Test Card Numbers"). Use those for certification testing. The PANs below may be from a prior Fiserv integration or generic industry test numbers — confirm with Fiserv before use.
 
-**Keyed transactions:** Use expiration date **12/49**
+| Card Brand | Test PAN | Verified? |
+|---|---|---|
+| Visa | 4761530001111118 | **No** — not found in SDK |
+| MasterCard | 5137221111116668 | **No** — not found in SDK |
+| Discover | 6011208701117775 | **No** — not found in SDK |
+| Amex | 3710300891113338 | **No** — not found in SDK |
+| Diners Club | 36185900011112 | **No** — not found in SDK |
+| JCB | 3566002345432153 | **No** — not found in SDK |
+| PIN Debit | 4017779991113335 | **No** — not found in SDK |
+| EBT | 5076800002222223 | **No** — not found in SDK |
+
+**Keyed transactions:** Use expiration date **12/49** (unverified — confirm with Fiserv)
 
 ### 9.5 Sample XML Payloads
 
@@ -1060,14 +992,6 @@ Source: `Datawire Compliance Test Form for Rapid Connect.doc` (v3.4.7), `Datawir
 | TOKENIZATION_QRG.pdf | Tokenization implementation |
 | Timeout_Reversal_Testing_QRG.pdf | TOR testing procedures |
 
-**Open Questions:**
-- What is the estimated timeline for Full-Cert completion based on similar SoftPOS integrations?
-- Are there Fiserv Visa/Mastercard simulators available for contactless testing?
-- Is the Sandbox always available (24/7), or are there maintenance windows?
-- Does Softpay need separate L3 (Level 3) scheme certification, or does Fiserv's certification cover this?
-- How does EMV card brand certification work for a SoftPOS solution — does Softpay's existing MPoC certification satisfy this?
-- Can certification, QA, and production share test credentials, or are separate environments required?
-
 ---
 
 ## Step 10 — Special Features & Optional Capabilities
@@ -1088,40 +1012,11 @@ Source: `Datawire Compliance Test Form for Rapid Connect.doc` (v3.4.7), `Datawir
 | **SoftPOS Terminal Category** | Selected | Terminal Category Code for SoftPOS |
 | **Mobile POS** | Selected | Terminal Category Code |
 
-### 10.2 Features Available but Not Selected (Phase 2 Candidates)
-
-| Feature | Phase 2 Priority | Rationale |
-|---|---|---|
-| **Surcharge (Tran Fee)** | Medium | Revenue opportunity for merchants; requires Fiserv contract |
-| **Tokenization (TransArmor)** | Medium | Card-on-file, recurring payments |
-| **Fiserv Network Tokens** | Medium | EMVCo network tokenization |
-| **Click to Pay** | Medium | Discover digital wallet |
-| **Soft Descriptors** | Low | Dynamic merchant descriptors on cardholder statements |
-| **Card Verification (CVV2)** | Low | Not typical for card-present |
-| **Fraud Flex Detect** | Low | E-commerce fraud scoring |
-| **Real-Time Account Updater** | Low | Card-on-file update service |
-| **Recurring Payments** | Low | Bill payment |
-| **AVS** | Low | Address verification — card-not-present |
-| **Cashback** | Low | Not typical for SoftPOS |
-
-### 10.3 Multi-Currency Support
+### 10.2 Multi-Currency Support
 
 - **Transaction Currency:** USD (840) — single currency
 - **DCC:** Supports conversion to cardholder's home currency for Visa/Mastercard
 - **GMA (Global Merchant Acquiring):** Not enabled — for multi-national use
-
-### 10.4 PAR Tokens / Network Tokens
-
-| Feature | Status |
-|---|---|
-| Fiserv Network Tokens | Not selected |
-| TransArmor Multi-Pay Token | Not selected |
-| PAR (Payment Account Reference) | Not explicitly mentioned |
-
-**Open Questions:**
-- Is PAR (Payment Account Reference) available through Rapid Connect?
-- Can network tokenization (Fiserv Network Tokens) be added post-certification, or does it require re-certification?
-- For merchants wanting recurring/card-on-file transactions, which tokenization approach does Fiserv recommend?
 
 ---
 
@@ -1209,10 +1104,7 @@ Per the Secure Transport Guide:
 
 **Open Questions:**
 - Request official API specification in YAML/OpenAPI format for automated testing and code generation.
-- ~~What are the exact timeout values for authorization, completion, and reversal requests?~~ **ANSWERED** — ClientTimeout: 15-40s staging, 15-35s production; uniform across all transaction types; app read timeout must exceed ClientTimeout (see Section 4.6, 11.5)
-- ~~Can multiple transactions share a single HTTPS connection, or must each be a separate connection?~~ **ANSWERED** — Yes, HTTP 1.1 Keep-Alive supported; SSL/TLS session reuse recommended
 - Is there a rate limit per MID/TID?
-- ~~Is the full response code list available in machine-readable format (CSV/JSON)?~~ **Created** — see `response_codes.json`
 - Does Fiserv pass through ISO 8583 Field 39 response codes directly, or are they mapped to UMF-specific codes?
 
 ---
@@ -1343,85 +1235,49 @@ Based on the 5-stage certification lifecycle and typical SoftPOS integration com
 
 ### 14.1 Critical Open Questions (Must Resolve Before Development)
 
-| # | Category | Question | Priority |
-|---|---|---|---|
-| 1 | ~~Connectivity~~ | ~~What are the Datawire Sandbox/Certification/Production base URLs?~~ **ANSWERED** — Staging: `https://stg.dw.us.fdcnet.biz/rc`, Production: `https://prod.dw.us.fdcnet.biz/rc` (see Section 4.4) | ~~Critical~~ |
-| 2 | ~~Connectivity~~ | ~~Are static IP whitelists required for Softpay's backend?~~ **ANSWERED** — No; Fiserv discourages IP-based rules; IPs are subject to change; auth is per-transaction via MID/TID/DID | ~~Critical~~ |
-| 3 | ~~Connectivity~~ | ~~What timeout values should be used for authorization/completion/reversal?~~ **ANSWERED** — ClientTimeout: 15-40s staging, 15-35s production, 30s recommended (see Section 4.6) | ~~Critical~~ |
-| 4 | Security | What is the process for ordering test and production encryption keys? | Critical |
-| 5 | ~~Security~~ | ~~Confirm TLS version requirement (TLS 1.2+? TLS 1.3?)~~ **ANSWERED** — TLSv1.3 preferred + TLSv1.2 required; 4 specific cipher suites (see Section 5.4) | ~~Critical~~ |
-| 6 | Security | Can MAC validation be disabled during Development/Sandbox? | Critical |
-| 7 | PIN Encryption | What PIN encryption method does Fiserv require for PIN Debit (DUKPT, AES-DUKPT, Master Session)? | Critical |
-| 8 | PIN Encryption | What PIN block format is required (ISO-0 / ISO-4)? | Critical |
-| 9 | PIN Encryption | How are DUKPT BDKs provisioned for SoftPOS devices? Are test BDKs available? | Critical |
-| 10 | PIN Encryption | Is online PIN supported for contactless transactions on SoftPOS/COTS devices? | Critical |
-| 11 | EMV | Does Fiserv require notification of kernel configurations (RQ 0600)? | Critical |
-| 12 | EMV | How are CAPK files distributed — API download or portal? | Critical |
-| 13 | Entry Mode | EMV (contact chip) is selected in the profile but SoftPOS has no chip reader — is this correct or should it be deselected? | Critical |
-| 14 | Transaction | Sale transaction type is not selected — confirm this is intentional and all purchases should use dual-message Authorization + Completion | Critical |
-| 15 | Certification | What is the estimated timeline for Full-Cert based on similar SoftPOS projects? | Critical |
-| 16 | Certification | Does Softpay's existing MPoC/EMV certification satisfy Fiserv's card brand requirements? | Critical |
-| 17 | Onboarding | How are production MIDs/TIDs assigned and delivered to Softpay? | Critical |
-| 18 | Transaction | Is Partial Authorization required for card-present SoftPOS? If so, it needs to be enabled. | Critical |
+| #   | Category       | Question                                                                                                                                                                                     | Priority |
+| --- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | Security       | What is the process for ordering test and production encryption keys?                                                                                                                        | Critical |
+| 2   | PIN Encryption | What is the process for obtaining the test master key for Master Session Encryption?                                                                                                         | Critical |
+| 3   | Entry Mode     | TPP RSO024 currently rejects keyed POSEntryMode (`011`/`012`) with `TP0003`. Cert may require PAN-entry support — please enable it on the TPP (or provision a cert-only TPP that allows it). | Critical |
+| 4   | Onboarding     | How are production MIDs/TIDs assigned and delivered to Softpay?                                                                                                                              | Critical |
+| 5   | Transaction    | Is Partial Authorization required for card-present SoftPOS? If so, it needs to be enabled.                                                                                                   | Critical |
+| 6   | Provisioning   | Test MIDs return `109 INVALID TERM` from BUYPASS on every authorization — please confirm at least one cert MID/TID is provisioned on the BUYPASS host.                                       | Critical |
+| 7   | Provisioning   | Datawire SRS registration tickets for all four cert MIDs have been consumed. Please reset them so we can re-register and test additional combos.                                             | Critical |
 
 ### 14.2 Important Open Questions (Should Resolve Before Certification)
 
-| # | Category | Question | Priority |
-|---|---|---|---|
-| 19 | Tipping | "Tip Amount" is selected — can tipping be used outside of Restaurant industry (Retail/QSR, Supermarket)? | High |
-| 20 | Tipping | Is there a percentage cap on tip amounts relative to the original authorization? | High |
-| 21 | DCC | Who provides the DCC rate feed — Fiserv or third party? | High |
-| 22 | DCC | What is the DCC rate refresh frequency? | High |
-| 23 | DCC | Are there specific DCC receipt requirements? | High |
-| 24 | Settlement | With Host Capture, does Softpay need to send OpenBatch/CloseBatch? (Batch Open/Close are not selected) | High |
-| 25 | Settlement | How does Softpay receive settlement reports/confirmations? | High |
-| 26 | Settlement | What is the daily settlement cut-off time? | High |
-| 27 | Reversal | What happens to Voids submitted after cut-off (has clearing occurred)? | High |
-| 28 | Receipt | Does Fiserv have a Receipt Requirements Specification document? | High |
-| 29 | Onboarding | Is there an API for programmatic merchant boarding? | High |
-| 30 | Onboarding | How is the Datawire DID managed at scale (thousands of devices)? | High |
-| 31 | Deferred Auth | What is the maximum time window for deferred authorizations? | High |
-| 32 | Deferred Auth | Are there card brand restrictions on deferred auth for SoftPOS? | High |
-| 33 | PIN Debit | How does KSN (Key Serial Number) counter management work for DUKPT on SoftPOS? | High |
+| #   | Category      | Question                                                                                                                                                               | Priority     |
+| --- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| 8   | Tipping       | "Tip Amount" is selected — can tipping be used outside of Restaurant industry (Retail/QSR, Supermarket)?                                                               | High         |
+| 9   | DCC           | Who provides the DCC rate feed — Fiserv or third party?                                                                                                                | High         |
+| 10  | DCC           | What is the DCC rate refresh frequency?                                                                                                                                | High         |
+| 11  | DCC           | Are there specific DCC receipt requirements?                                                                                                                           | High         |
+| 12  | Receipt       | Does Fiserv have a Receipt Requirements Specification document?                                                                                                        | High         |
+| 13  | Deferred Auth | Does Rapid Connect support submitting deferred/offline authorizations? Only `CancelDeferredAuth` exists in the XSD — no TxnType for submission. What is the mechanism? | **Critical** |
+| 14  | Deferred Auth | Can Softpay queue standard `Authorization` messages offline and submit when connectivity returns, or is a specific deferred auth flow required?                        | High         |
 
-### 14.3 Phase 2 / Future Considerations
+### 14.3 Assumptions Made
 
-| # | Category | Question | Priority |
-|---|---|---|---|
-| 34 | Surcharge | Should surcharging be enabled? Requires Fiserv contract. | Medium |
-| 35 | Tokenization | Which tokenization approach for recurring/card-on-file? | Medium |
-| 36 | Network Tokens | Can Fiserv Network Tokens be added post-certification? | Medium |
-| 37 | JCB | Should JCB be added to supported card brands? | Medium |
-| 38 | Click to Pay | Should Click to Pay (Discover digital wallet) be added? | Low |
-| 39 | PayFac | If Softpay operates as PayFac, what additional requirements? | Low |
-| 40 | Sale TxnType | Should Sale (single-message) be added for simpler non-tipping flows? | Low |
+| #   | Assumption                                                                                                                                 | Risk if Wrong                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| A1  | Host Capture means Fiserv handles settlement automatically via periodic batch runs (every X minutes) without batch operations from Softpay | May need to implement batch operations                          |
+| A2  | Softpay's existing MPoC/EMV L1/L2 certification satisfies Fiserv's EMV requirements                                                        | May need additional card brand certification                    |
+| A3  | Datawire XML API is the correct connectivity option for Softpay                                                                            | May need to use a different API variant                         |
+| A4  | Tipping is enabled via "Tip Amount" selection and works with the dual-message auth+completion flow                                         | May need additional configuration                               |
+| A5  | Production MID/TID assignment is a manual process through Fiserv                                                                           | May be automated/API-based                                      |
+| A6  | EMV (contact chip) selection in the profile is a configuration oversight since SoftPOS has no chip reader                                  | May need to support contact chip in some manner                 |
+| A7  | Softpay's certified PIN pad satisfies Fiserv's requirements for online PIN entry on COTS devices                                           | May need additional PIN pad certification or different approach |
 
-### 14.4 Assumptions Made
+### 14.4 Key Risks
 
-| # | Assumption | Risk if Wrong |
-|---|---|---|
-| A1 | Host Capture means Fiserv handles settlement automatically without batch operations from Softpay | May need to implement batch operations |
-| A2 | Softpay's existing MPoC/EMV L1/L2 certification satisfies Fiserv's EMV requirements | May need additional card brand certification |
-| A3 | Datawire XML API is the correct connectivity option for Softpay | May need to use a different API variant |
-| A4 | Tipping is enabled via "Tip Amount" selection and works with the dual-message auth+completion flow | May need additional configuration |
-| A5 | Production MID/TID assignment is a manual process through Fiserv | May be automated/API-based |
-| A6 | No TransArmor encryption is needed since Softpay manages its own PCI environment | May need TransArmor for specific merchant use cases |
-| A7 | EMV (contact chip) selection in the profile is a configuration oversight since SoftPOS has no chip reader | May need to support contact chip in some manner |
-| A8 | All purchases use dual-message Authorization + Completion (Sale not selected) | May need Sale for some use cases |
-| A9 | Softpay's certified PIN pad satisfies Fiserv's requirements for online PIN entry on COTS devices | May need additional PIN pad certification or different approach |
-
-### 14.5 Key Risks
-
-| # | Risk | Impact | Mitigation |
-|---|---|---|---|
-| R1 | 425+ mandatory test cases may require extensive development time | Timeline delay | Start with most common transaction flows; parallelize test execution |
-| R2 | EMV card brand certification may require additional testing beyond Rapid Connect | Timeline delay; additional cost | Clarify early with Fiserv; leverage existing Softpay certifications |
-| R3 | Key management (Master Session + TR-31) adds complexity | Security risk if misconfigured | Engage Fiserv security team early; test thoroughly |
-| R4 | Datawire provisioning at scale for thousands of merchant devices | Operational complexity | Clarify automated provisioning APIs early |
-| R5 | DCC implementation requires rate feed integration and specific EMV handling | Feature delay if not planned properly | Engage DCC provider early; plan contactless edge cases |
-| R6 | 2026 UMF Changes (v15.04.5) introduce new fields (Transaction Acceptance Method, Cardholder Form Factor, Payment Method Type) | May require implementation of new fields | Review all 2026 changes for applicability |
-| R7 | PIN Debit is selected — requires PINGrp implementation, PIN encryption (DUKPT/Master Session), BDK provisioning, and online PIN on COTS/SoftPOS | Significant development and security complexity; MPoC certification implications | Clarify PIN encryption requirements with Fiserv early; leverage Softpay's certified PIN pad; engage security team |
-| R8 | EMV (contact chip) is selected but SoftPOS has no chip reader — may cause certification issues if tests require contact chip flows | Certification delays | Clarify with Fiserv immediately whether this should be deselected |
+| #   | Risk                                                                                                                                                | Impact                                                                           | Mitigation                                                                                                               |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| R1  | 425+ mandatory test cases may require extensive development time                                                                                    | Timeline delay                                                                   | Start with most common transaction flows; parallelize test execution                                                     |
+| R2  | EMV card brand certification may require additional testing beyond Rapid Connect                                                                    | Timeline delay; additional cost                                                  | Clarify early with Fiserv; leverage existing Softpay certifications                                                      |
+| R3  | DCC implementation requires rate feed integration and specific EMV handling                                                                         | Feature delay if not planned properly                                            | Engage DCC provider early; plan contactless edge cases                                                                   |
+| R4  | 2026 UMF Changes (v15.04.5) introduce new fields (Transaction Acceptance Method, Cardholder Form Factor, Payment Method Type)                       | May require implementation of new fields                                         | Review all 2026 changes for applicability                                                                                |
+| R5  | EMV (contact chip) is selected but SoftPOS has no chip reader — may cause certification issues if tests require contact chip flows                  | Certification delays                                                             | Clarify with Fiserv immediately whether this should be deselected                                                        |
 
 ---
 

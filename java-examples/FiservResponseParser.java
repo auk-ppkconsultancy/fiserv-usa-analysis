@@ -103,8 +103,14 @@ public class FiservResponseParser {
      * Parses a Fiserv UMF XML response into an AuthorizationResponse object.
      *
      * Works for CreditResponse, DebitResponse, and RejectResponse.
+     *
+     * Note: RejectResponse payloads from Fiserv may contain a nested CDATA
+     * section with the echoed original request (after </RespGrp>). This is
+     * malformed XML that breaks StAX, so we strip it before parsing.
      */
     public static AuthorizationResponse parseResponse(String xml) throws Exception {
+        xml = stripNestedCdata(xml);
+
         AuthorizationResponse resp = new AuthorizationResponse();
         XMLStreamReader reader = XMLInputFactory.newInstance()
                 .createXMLStreamReader(new StringReader(xml));
@@ -125,35 +131,38 @@ public class FiservResponseParser {
                 currentElement = name;
 
             } else if (event == XMLStreamConstants.CHARACTERS && currentElement != null) {
-                String text = reader.getText().trim();
-                if (text.isEmpty()) continue;
+                String text = reader.getText();
+                if (text.trim().isEmpty()) continue;
 
                 // CommonGrp fields
                 if ("CommonGrp".equals(currentGroup)) {
                     switch (currentElement) {
-                        case "PymtType": resp.pymtType = text; break;
-                        case "TxnType": resp.txnType = text; break;
-                        case "LocalDateTime": resp.localDateTime = text; break;
-                        case "TrnmsnDateTime": resp.trnmsnDateTime = text; break;
-                        case "STAN": resp.stan = text; break;
-                        case "RefNum": resp.refNum = text; break;
-                        case "TermID": resp.termId = text; break;
-                        case "MerchID": resp.merchId = text; break;
-                        case "TxnAmt": resp.txnAmt = text; break;
+                        case "PymtType": resp.pymtType = text.trim(); break;
+                        case "TxnType": resp.txnType = text.trim(); break;
+                        case "LocalDateTime": resp.localDateTime = text.trim(); break;
+                        case "TrnmsnDateTime": resp.trnmsnDateTime = text.trim(); break;
+                        case "STAN": resp.stan = text.trim(); break;
+                        case "RefNum": resp.refNum = text.trim(); break;
+                        case "TermID": resp.termId = text.trim(); break;
+                        case "MerchID": resp.merchId = text.trim(); break;
+                        case "TxnAmt": resp.txnAmt = text.trim(); break;
                     }
                 }
 
-                // RespGrp fields
+                // RespGrp fields — ErrorData may span multiple CHARACTER events
+                // due to XML entity references (&amp;apos; etc.), so we accumulate it.
                 if ("RespGrp".equals(currentGroup)) {
                     switch (currentElement) {
-                        case "RespCode": resp.respCode = text; break;
-                        case "AuthID": resp.authId = text; break;
-                        case "ResponseDate": resp.responseDate = text; break;
-                        case "AddlRespData": resp.addlRespData = text; break;
-                        case "AuthNetID": resp.authNetId = text; break;
-                        case "AuthNetName": resp.authNetName = text; break;
-                        case "SignInd": resp.signInd = text; break;
-                        case "ErrorData": resp.errorData = text; break;
+                        case "RespCode": resp.respCode = text.trim(); break;
+                        case "AuthID": resp.authId = text.trim(); break;
+                        case "ResponseDate": resp.responseDate = text.trim(); break;
+                        case "AddlRespData": resp.addlRespData = text.trim(); break;
+                        case "AuthNetID": case "AthNtwkID": resp.authNetId = text.trim(); break;
+                        case "AuthNetName": case "AthNtwkNm": resp.authNetName = text.trim(); break;
+                        case "SignInd": resp.signInd = text.trim(); break;
+                        case "ErrorData":
+                            resp.errorData = (resp.errorData == null) ? text : resp.errorData + text;
+                            break;
                     }
                 }
 
@@ -208,6 +217,25 @@ public class FiservResponseParser {
 
         reader.close();
         return resp;
+    }
+
+    /**
+     * Strips the nested CDATA block that Fiserv embeds inside RejectResponse.
+     *
+     * The raw payload looks like:
+     *   ...&lt;/RespGrp&gt;&lt;![CDATA[...original request echo...]]&gt;&lt;/RejectResponse&gt;...
+     *
+     * We cut everything between &lt;/RespGrp&gt; and &lt;/RejectResponse&gt; to produce
+     * valid XML that StAX can parse.
+     */
+    private static String stripNestedCdata(String xml) {
+        int respGrpEnd = xml.indexOf("</RespGrp>");
+        int rejectEnd = xml.indexOf("</RejectResponse>");
+        if (respGrpEnd > 0 && rejectEnd > respGrpEnd) {
+            xml = xml.substring(0, respGrpEnd + "</RespGrp>".length())
+                    + xml.substring(rejectEnd);
+        }
+        return xml;
     }
 
     // =========================================================================

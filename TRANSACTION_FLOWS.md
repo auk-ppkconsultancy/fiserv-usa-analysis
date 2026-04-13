@@ -3,8 +3,8 @@
 **Project:** Softpay SoftPOS -- Fiserv Rapid Connect Integration
 **Project ID (TPP ID):** RSO024
 **UMF Version:** 15.04 (v15.04.5, effective February 25, 2026)
-**Settlement Model:** Host Capture (Fiserv auto-settles after Completion)
-**Purchase Flow:** Dual-message only (Authorization + Completion) -- Sale is NOT selected
+**Settlement Model:** Host Capture (Fiserv auto-settles via periodic batch runs every X minutes)
+**Purchase Flow:** Dual-message only (Authorization + Completion) -- Sale intentionally excluded (see rationale below)
 
 ---
 
@@ -28,8 +28,14 @@
 ## 1. Standard Purchase Flow (Contactless Credit)
 
 Every purchase in RSO024 follows the dual-message pattern: an Authorization captures the
-approval and an AuthID, then a Completion captures the funds for settlement. Sale
-(single-message) is not enabled.
+approval and an AuthID, then a Completion captures the funds for settlement.
+
+**Why dual-message (confirmed with Fiserv):** Host Capture runs periodic batch cycles (every
+X minutes), sweeping all completed transactions into settlement. With single-message Sale,
+transactions would be captured and batched almost immediately — leaving no void window.
+Softpay requires at least 15 minutes for voids. The dual-message flow gives Softpay control
+over when to send the Completion: voids can be sent any time before Completion, and the
+Completion is only sent when the transaction is final.
 
 ### Sequence Diagram
 
@@ -137,18 +143,103 @@ Cardholder            Softpay App              Fiserv Rapid Connect
 - **Scheme-specific groups** (VisaGrp, MCGrp, AmexGrp, DSGrp) must echo the values
   returned in the auth response.
 - **TxnAmt in Completion** may differ from auth if tip or adjustment applies (see Section 2).
-- **Host Capture** -- after the Completion response with RespCode=000, Fiserv handles
-  settlement automatically. No BatchClose required.
+- **Host Capture** -- after the Completion response with RespCode=000, the transaction
+  enters the next periodic batch cycle for settlement. No BatchClose required.
+- **Void window strategy** -- voids of Authorizations (before Completion) are effectively
+  unlimited. Voids of Completions must be submitted before the next batch run.
 
 ---
 
-## 2. Restaurant Purchase with Tip
+## 2. Purchase with Tip
 
-In the Restaurant industry, the authorization is sent for the subtotal (pre-tip amount). After
-the cardholder adds a tip, the Completion is sent with the final total. The `AdditlAmtGrp`
-carries the original and total authorized amounts.
+Two tipping flows are supported. **Flow 2A (tip-before-auth)** is the Softpay preferred flow
+and works across all industries. **Flow 2B (tip-after-auth)** is the traditional restaurant
+model where the tip is added after authorization.
 
-### Sequence Diagram
+### 2A. Tip-Before-Auth (Softpay Preferred)
+
+The app collects the tip **before** sending the authorization. The full amount (service + tip)
+is authorized and completed for the same amount. This is simpler, avoids the 20% tolerance
+dependency, and works for any MCC.
+
+```
+Cardholder            Softpay App              Fiserv Rapid Connect
+    |                      |                            |
+    |--- Tap Card -------->|                            |
+    |   (subtotal=$50.00)  |                            |
+    |                      |                            |
+    | STEP 1: App shows tip screen                      |
+    |                      |                            |
+    |--- Add $8.00 tip --->|                            |
+    |                      |                            |
+    | STEP 2: Authorize full amount (service + tip)     |
+    |                      |--- CreditRequest --------->|
+    |                      |    TxnType=Authorization   |
+    |                      |    TxnAmt=000000005800     |
+    |                      |      ($50.00 + $8.00 tip)  |
+    |                      |    STAN=000201             |
+    |                      |    RefNum=200000000001     |
+    |                      |    MerchCatCode=5812       |
+    |                      |    <CardGrp, EMVGrp, etc.> |
+    |                      |                            |
+    |                      |<-- CreditResponse ---------|
+    |                      |    RespCode=000            |
+    |                      |    AuthID=TIP567           |
+    |                      |    ResponseDate=0407       |
+    |                      |    TransID=<scheme ref>    |
+    |                      |                            |
+    |<-- "Approved $58.00" |                            |
+    |                      |                            |
+    | STEP 3: Completion (same amount)                  |
+    |                      |--- CreditRequest --------->|
+    |                      |    TxnType=Completion      |
+    |                      |    TxnAmt=000000005800     |
+    |                      |      (SAME as auth)        |
+    |                      |    STAN=000202 (NEW)       |
+    |                      |    RefNum=200000000001     |
+    |                      |      (SAME as auth)        |
+    |                      |    OrigAuthGrp:            |
+    |                      |      OrigAuthID=TIP567     |
+    |                      |      OrigRespCode=000      |
+    |                      |      OrigSTAN=000201       |
+    |                      |      OrigResponseDate=0407 |
+    |                      |      OrigLocalDateTime=... |
+    |                      |      OrigTranDateTime=...  |
+    |                      |    AdditlAmtGrp:           |
+    |                      |      AddlAmtType=          |
+    |                      |        FirstAuthAmt        |
+    |                      |      AddlAmt=             |
+    |                      |        000000005800        |
+    |                      |    AdditlAmtGrp:           |
+    |                      |      AddlAmtType=          |
+    |                      |        TotalAuthAmt        |
+    |                      |      AddlAmt=             |
+    |                      |        000000005800        |
+    |                      |    <scheme group echoed>   |
+    |                      |                            |
+    |                      |<-- CreditResponse ---------|
+    |                      |    RespCode=000            |
+    |                      |                            |
+    |<-- Receipt: $58.00 --|                            |
+    |   Subtotal: $50.00   |                            |
+    |   Tip:       $8.00   |                            |
+    |   Total:    $58.00   |                            |
+    |                      |                            |
+```
+
+#### Key Points (Flow 2A)
+
+- **Tip is collected on-device before the authorization.** The protocol sees only the total amount.
+- **Auth TxnAmt = Completion TxnAmt** — no tolerance needed, no risk of exceeding 20%.
+- **FirstAuthAmt = TotalAuthAmt = Completion TxnAmt** (all $58.00 in this example).
+- **Works for any MCC** — not limited to Restaurant (5812). Can be used with Retail (5399), Supermarket (5411), etc.
+- **`TipAmt` in AddtlAmtGrp** is optional — can be sent for downstream reporting if desired.
+
+### 2B. Tip-After-Auth (Traditional Restaurant)
+
+The authorization is sent for the subtotal only. The tip is added later (e.g., on a paper
+receipt), and the Completion carries the adjusted total. Requires Restaurant MCC and the
+20% card brand tolerance rule applies.
 
 ```
 Cardholder            Softpay App              Fiserv Rapid Connect
@@ -215,11 +306,12 @@ Cardholder            Softpay App              Fiserv Rapid Connect
     |                      |                            |
 ```
 
-### Key Points
+#### Key Points (Flow 2B)
 
 - **MerchCatCode=5812** (Restaurants & Eating Places) or another Restaurant MCC.
-- **TxnAmt in Completion = subtotal + tip** -- the host settles this final amount.
-- **AdditlAmtGrp** -- per 2026 UMF Changes, for Completion transactions:
+- **TxnAmt in Completion = subtotal + tip** — the host settles this final amount.
+- **Completion exceeds Authorization** — card brand 20% tolerance rule applies.
+- **AdditlAmtGrp** — per 2026 UMF Changes, for Completion transactions:
   - `FirstAuthAmt` = the initial authorization amount ($50.00 = 000000005000).
   - `TotalAuthAmt` = the total amount that was authorized. If no incremental
     authorizations were made, TotalAuthAmt equals FirstAuthAmt.
@@ -227,6 +319,18 @@ Cardholder            Softpay App              Fiserv Rapid Connect
 - **Tip adjustment must be submitted before merchant cut-off** for the day.
 - **Settlement amount = Completion amount** ($58.00), not the authorization amount ($50.00).
 - The Restaurant QRG (`RESTAURANT_QRG.pdf`) provides additional industry-specific guidance.
+
+### Choosing Between Flow 2A and 2B
+
+| | Flow 2A (Tip-Before-Auth) | Flow 2B (Tip-After-Auth) |
+|---|---|---|
+| **When to use** | Default for Softpay SoftPOS | Table-service with paper receipts |
+| **Tip timing** | Before authorization | After authorization, before completion |
+| **Auth amount** | Full (service + tip) | Subtotal only |
+| **Completion amount** | Same as auth | Higher than auth (includes tip) |
+| **20% tolerance** | Not needed | Required (Restaurant MCC) |
+| **Industry restriction** | Any MCC | Restaurant MCCs only |
+| **Complexity** | Simpler — amounts match | More complex — amounts differ |
 
 ---
 
@@ -332,7 +436,7 @@ Cardholder            Softpay App              Fiserv Rapid Connect
   - `PINData` -- the encrypted PIN block (hexadecimal).
   - `MSKeyID` -- Master Session Key ID obtained from the EncryptionKeyRequest response.
     Used when Master Session encryption is selected (as in RSO024).
-  - `KeySerialNumData` -- used for DUKPT encryption (alternative to MSKeyID).
+  - `KeySerialNumData` -- not used by Softpay (DUKPT only; Softpay uses Master Session Encryption).
   - `NumPINDigits` -- number of digits the cardholder entered.
 - **PIN is only sent in the Authorization**, not in the Completion.
 - **PINless POS Debit** is also selected -- for PINless transactions, the `PINGrp` is omitted

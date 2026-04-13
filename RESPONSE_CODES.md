@@ -91,8 +91,8 @@ Response Received from Fiserv
 |   |   |   +-- YES (505, 508, 511, 516, 524): wait 5-10 seconds, retry ONCE
 |   |   |   +-- NO  (500, 504, 509, 514, 517, 520): do NOT retry
 |   |   +-- 532, 533, 534 = Key/encryption errors:
-|   |   |   +-- Check DUKPT key setup and KSN counter
-|   |   |   +-- May need to request new encryption key (EncryptionKeyRequest)
+|   |   |   +-- Check Master Session key setup and MSKeyID
+|   |   |   +-- Request new session key via EncryptionKeyRequest
 |   |   |   +-- Log and escalate to Softpay key management
 |   |   +-- 542 = PIN tries exceeded --> card is locked for PIN
 |   |   +-- Display "Transaction cannot be processed" to cardholder
@@ -286,9 +286,9 @@ The `RespCode` field is returned in `RespGrp.RespCode` (alphanumeric, max 3 char
 | 526 | Invalid Encryption Data (key) | No | Wrong encryption key used |
 | 527 | Invalid Encryption Data (format) | No | Encryption format error |
 | 530 | PIN Required | No | Transaction requires PIN but PINGrp not sent |
-| 532 | Invalid DUKPT Key | No | DUKPT key not valid; re-inject key |
-| 533 | DUKPT Key Sync Error | No | KSN out of sequence; request new key |
-| 534 | DUKPT Encryption Error | No | DUKPT decryption failed at host |
+| 532 | Invalid Encryption Key | No | Encryption key not valid; request new session key (EncryptionKeyRequest) |
+| 533 | Encryption Key Sync Error | No | Key out of sync; request new session key (EncryptionKeyRequest) |
+| 534 | Encryption Error | No | Host decryption failed; check MSKeyID and session key validity |
 | 542 | PIN Tries Exceeded | No | Card locked for PIN entry |
 | 601 | Velocity Filter | No | Too many transactions in time window |
 | 602 | Maximum Sale Filter | No | Amount exceeds max sale filter |
@@ -657,38 +657,38 @@ Terminal Action:
 
 ### 3.4 Key Management Errors
 
-#### 532 - Invalid DUKPT Key
+#### 532 - Invalid Encryption Key
 
 ```
 Terminal Action:
-  1. DUKPT key is invalid or has been revoked
-  2. Request new key via EncryptionKeyRequest (TxnType=EncryptionKeyRequest)
+  1. Master Session encryption key is invalid or has been revoked
+  2. Request new session key via EncryptionKeyRequest (TxnType=EncryptionKeyRequest)
   3. Do NOT retry original transaction until key is refreshed
-  4. Log: include KSN (Key Serial Number) in error report
+  4. Log: include MSKeyID in error report
   5. If key refresh fails: escalate to Softpay key management
   6. Merchant impact: all PIN Debit transactions will fail until resolved
 ```
 
-#### 533 - DUKPT Key Sync Error
+#### 533 - Encryption Key Sync Error
 
 ```
 Terminal Action:
-  1. KSN counter is out of sync with host
-  2. Request new key via EncryptionKeyRequest
-  3. After new key: retry original transaction with fresh KSN
-  4. Common cause: app crash during key counter increment
-  5. Prevention: persist KSN counter atomically before sending transaction
+  1. Session key is out of sync with host (MSKeyID mismatch)
+  2. Request new session key via EncryptionKeyRequest
+  3. After new key: retry original transaction with fresh MSKeyID
+  4. Common cause: session key expired (24h rotation) or app restart
+  5. Prevention: check key age before each PIN Debit transaction
 ```
 
-#### 534 - DUKPT Encryption Error
+#### 534 - Encryption Error
 
 ```
 Terminal Action:
   1. Host could not decrypt the PIN block
-  2. Check: correct BDK (Base Derivation Key) in use?
-  3. Check: PIN block format matches Fiserv requirement (ISO-0 / ISO-4)?
-  4. Request new key via EncryptionKeyRequest
-  5. If persistent: escalate -- may indicate wrong key injected
+  2. Check: correct Master Session key in use (MSKeyID matches active session)?
+  3. Check: PIN block format matches Fiserv requirement (ISO Format 0)?
+  4. Request new session key via EncryptionKeyRequest
+  5. If persistent: escalate -- may indicate master key mismatch between environments
 ```
 
 #### 542 - PIN Tries Exceeded

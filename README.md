@@ -16,7 +16,7 @@
 | 3 | [response_codes.json](response_codes.json) | Machine-readable JSON with 326 response codes — each with category, retryable flag, recommended action, and merchant/cardholder messages |
 | 4 | [TRANSACTION_FLOWS.md](TRANSACTION_FLOWS.md) | Sequence diagrams for all transaction flows (Auth+Completion, Void, TOR, Refund, DCC, Digital Wallet, PIN Debit, Key Exchange) with field echo tables and STAN/RefNum management rules |
 | 5 | [POS_ENTRY_MODES.md](POS_ENTRY_MODES.md) | POS Entry Mode decision tree for SoftPOS, Terminal Category Codes, digital wallet detection (Apple Pay / Google Pay / Samsung Pay), Card Type BIN determination, and complete code reference tables |
-| 6 | [PIN_DEBIT_GUIDE.md](PIN_DEBIT_GUIDE.md) | Master Session Encryption lifecycle, DUKPT key management, PIN block construction (ISO-0/ISO-4), PINGrp field mapping, online PIN vs. CDCVM decision tree, PINless POS Debit, and MPoC considerations |
+| 6 | [PIN_DEBIT_GUIDE.md](PIN_DEBIT_GUIDE.md) | Master Session Encryption lifecycle, PIN block construction (ISO Format 0), PINGrp field mapping, online PIN vs. CDCVM decision tree, PINless POS Debit, and MPoC considerations |
 | 7 | [TEST_CASE_INDEX.md](TEST_CASE_INDEX.md) | All 424 mandatory + 83 non-mandatory test cases parsed and categorized by brand, type, entry mode, industry, and feature — with a prioritized smoke test subset and certification stage checklist |
 | 8 | [WORKSHOP_QUESTIONS.md](WORKSHOP_QUESTIONS.md) | 46 open questions grouped by topic with context, assumptions, blocker classification, a time-boxed 2-hour workshop agenda, and action item tracking template |
 
@@ -24,7 +24,9 @@
 
 | File | Description |
 |---|---|
-| [java-examples/FiservUmfMessageBuilder.java](java-examples/FiservUmfMessageBuilder.java) | XML message builder for Authorization, Completion, Void/Reversal, Refund, DCC, PIN Debit, and Encryption Key Request — demonstrates Track2, EMV TLV, PINGrp, DCCGrp, and scheme-specific group population |
+| [java-examples/FiservIntegrationRunner.java](java-examples/FiservIntegrationRunner.java) | **Runnable** end-to-end demo: Datawire SRS lifecycle (discover → register → activate), Credit Authorization ($50 Visa), Completion with $8 tip, and Void — dry-run mode prints all XML; `--live` connects to staging |
+| [java-examples/DatawireClient.java](java-examples/DatawireClient.java) | Datawire Secure Transport client: service discovery, SRS registration/activation, transaction envelope wrapping (CDATA), AuthKey/ClientRef construction, HTTP POST, response parsing, retry logic |
+| [java-examples/FiservUmfMessageBuilder.java](java-examples/FiservUmfMessageBuilder.java) | UMF XML message builder for Authorization, Completion, Void/Reversal, Refund, DCC, PIN Debit, and Encryption Key Request — demonstrates Track2, EMV TLV, PINGrp, DCCGrp, and scheme-specific group population |
 | [java-examples/FiservResponseParser.java](java-examples/FiservResponseParser.java) | StAX parser extracting approval/decline, OrigAuthGrp fields, scheme-specific references, and EMV response data — with full dual-message flow example |
 | [java-examples/EmvTlvParser.java](java-examples/EmvTlvParser.java) | EMV TLV hex string parser and builder for the EMVGrp.EMVData field — handles 1/2-byte tags, BER-TLV length encoding, and Fiserv's 4-char length prefix |
 

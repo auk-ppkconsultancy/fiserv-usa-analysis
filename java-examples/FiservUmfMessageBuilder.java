@@ -81,7 +81,7 @@ public class FiservUmfMessageBuilder {
         writeElement(w, "MerchCatCode", merchantCatCode);
         writeElement(w, "POSEntryMode", "071");   // Contactless EMV (ICC)
         writeElement(w, "POSCondCode", "00");      // Normal transaction
-        writeElement(w, "TermCatCode", "14");       // Mobile POS / SoftPOS
+        writeElement(w, "TermCatCode", "09");       // Mobile POS / mPOS (cellphone/tablet as terminal)
         writeElement(w, "TermEntryCapablt", "04");  // Contactless read capability
         writeElement(w, "TxnAmt", formatAmount(amountInCents));
         writeElement(w, "TxnCrncy", CURRENCY_USD);
@@ -113,7 +113,7 @@ public class FiservUmfMessageBuilder {
         w.writeStartElement("EMVGrp");
         writeElement(w, "EMVData", emvTlvHexString);
         if (cardSeqNum != null) {
-            writeElement(w, "CardSeqNum", cardSeqNum);
+            writeElement(w, "CardSeqNum", String.format("%03d", Integer.parseInt(cardSeqNum)));
         }
         w.writeEndElement(); // EMVGrp
 
@@ -193,7 +193,7 @@ public class FiservUmfMessageBuilder {
         writeElement(w, "MerchCatCode", merchantCatCode);
         writeElement(w, "POSEntryMode", "071");    // Contactless EMV
         writeElement(w, "POSCondCode", "00");
-        writeElement(w, "TermCatCode", "14");
+        writeElement(w, "TermCatCode", "09");
         writeElement(w, "TermEntryCapablt", "04");
         writeElement(w, "TxnAmt", formatAmount(amountInCents));
         writeElement(w, "TxnCrncy", CURRENCY_USD);
@@ -241,7 +241,7 @@ public class FiservUmfMessageBuilder {
         w.writeStartElement("EMVGrp");
         writeElement(w, "EMVData", emvTlvHexString);
         if (cardSeqNum != null) {
-            writeElement(w, "CardSeqNum", cardSeqNum);
+            writeElement(w, "CardSeqNum", String.format("%03d", Integer.parseInt(cardSeqNum)));
         }
         w.writeEndElement(); // EMVGrp
 
@@ -271,6 +271,15 @@ public class FiservUmfMessageBuilder {
      *   2. Customer adds tip
      *   3. Send Completion with TxnAmt = subtotal + tip
      *   4. Include AddtlAmtGrp with FirstAuthAmt and TotalAuthAmt
+     *
+     * LIMITATION: This method does not accept scheme-specific echo fields.
+     * In production, the scheme group MUST echo the reference from the Auth response:
+     *   - Visa:     VisaGrp.TransID       (from Auth VisaGrp.TransID)
+     *   - MC:       MCGrp.BanknetData     (from Auth MCGrp.BanknetData)
+     *   - Amex:     AmexGrp.AmExTranID    (from Auth AmexGrp.AmExTranID)
+     *   - Discover: DSGrp.DiscNRID        (from Auth DSGrp.DiscNRID)
+     * Add these as parameters and write them inside writeSchemeGroup() for
+     * non-auth calls. Without them, Fiserv may reject the Completion.
      */
     public static String buildCompletion(
             String merchantId,
@@ -319,7 +328,7 @@ public class FiservUmfMessageBuilder {
         writeElement(w, "MerchCatCode", merchantCatCode);
         writeElement(w, "POSEntryMode", "071");
         writeElement(w, "POSCondCode", "00");
-        writeElement(w, "TermCatCode", "14");
+        writeElement(w, "TermCatCode", "09");
         writeElement(w, "TermEntryCapablt", "04");
         writeElement(w, "TxnAmt", formatAmount(finalAmountInCents)); // Final amount (with tip)
         writeElement(w, "TxnCrncy", CURRENCY_USD);
@@ -350,6 +359,9 @@ public class FiservUmfMessageBuilder {
         w.writeEndElement(); // AddtlAmtGrp
 
         // --- Scheme-specific group ---
+        // TODO: Pass scheme-specific echo fields (Visa TransID, MC BanknetData,
+        //       Amex AmExTranID, Discover DiscNRID) from Auth response.
+        //       Currently writes an empty scheme group — Fiserv may reject this.
         writeSchemeGroup(w, cardType, false);
 
         // --- OrigAuthGrp (references the original Authorization) ---
@@ -388,6 +400,11 @@ public class FiservUmfMessageBuilder {
      *
      * For Timeout Reversals: scheme-specific reference fields (Visa TransID,
      * MC BanknetData, Amex AmExTranID, Discover NRID) are EXEMPT per 2026 changes.
+     *
+     * LIMITATION: Same as buildCompletion() — this method does not accept
+     * scheme-specific echo fields (Visa TransID, MC BanknetData, etc.).
+     * For Void (not TOR), the scheme group MUST echo the reference from the
+     * Authorization response. Add these as parameters for production use.
      */
     public static String buildVoidFullReversal(
             String merchantId,
@@ -436,7 +453,7 @@ public class FiservUmfMessageBuilder {
         writeElement(w, "MerchCatCode", merchantCatCode);
         writeElement(w, "POSEntryMode", "071");
         writeElement(w, "POSCondCode", "00");
-        writeElement(w, "TermCatCode", "14");
+        writeElement(w, "TermCatCode", "09");
         writeElement(w, "TermEntryCapablt", "04");
         writeElement(w, "TxnAmt", formatAmount(originalAmountInCents));
         writeElement(w, "TxnCrncy", CURRENCY_USD);
@@ -446,8 +463,11 @@ public class FiservUmfMessageBuilder {
         w.writeEndElement(); // CommonGrp
 
         // --- CardGrp ---
+        // Reversals must use AcctNum (PAN), NOT Track2Data — Fiserv rejects Track2Data
+        // in ReversalRequest with "RE008 - Field Not Allowed: Track2Data"
         w.writeStartElement("CardGrp");
-        writeElement(w, "Track2Data", track2Data);
+        String pan = extractPanFromTrack2(track2Data);
+        writeElement(w, "AcctNum", pan);
         writeElement(w, "CardType", cardType);
         w.writeEndElement(); // CardGrp
 
@@ -468,18 +488,23 @@ public class FiservUmfMessageBuilder {
         // --- Scheme-specific group ---
         // For Timeout Reversals: scheme reference fields are EXEMPT (2026 change)
         // For Voids: must include scheme reference from original response
+        // TODO: Pass scheme-specific echo fields (Visa TransID, MC BanknetData,
+        //       Amex AmExTranID, Discover DiscNRID) from Auth response.
+        //       Currently writes an empty scheme group — Fiserv may reject Void.
         if (!"Timeout".equals(reversalInd)) {
             writeSchemeGroup(w, cardType, false);
         }
 
         // --- OrigAuthGrp ---
+        // For TOR: only OrigSTAN, OrigLocalDateTime, OrigTranDateTime are available
+        // (no response was received, so OrigAuthID/OrigRespCode/OrigResponseDate are null)
         w.writeStartElement("OrigAuthGrp");
-        writeElement(w, "OrigAuthID", origAuthId);
-        writeElement(w, "OrigResponseDate", origResponseDate);
+        if (origAuthId != null) writeElement(w, "OrigAuthID", origAuthId);
+        if (origResponseDate != null) writeElement(w, "OrigResponseDate", origResponseDate);
         writeElement(w, "OrigLocalDateTime", origLocalDateTime);
         writeElement(w, "OrigTranDateTime", origTranDateTime);
         writeElement(w, "OrigSTAN", origStan);
-        writeElement(w, "OrigRespCode", origRespCode);
+        if (origRespCode != null) writeElement(w, "OrigRespCode", origRespCode);
         w.writeEndElement(); // OrigAuthGrp
 
         w.writeEndElement(); // ReversalRequest
@@ -491,11 +516,14 @@ public class FiservUmfMessageBuilder {
     }
 
     // =========================================================================
-    // 5. REFUND — Credit funds back to cardholder
+    // 5a. UNREFERENCED REFUND — No link to original transaction
     // =========================================================================
 
     /**
-     * Builds a Refund request.
+     * Builds an unreferenced Refund request (not linked to a prior auth).
+     *
+     * Used when the original transaction reference is unavailable (e.g., refund
+     * from a different terminal or after batch settlement). No OrigAuthGrp is sent.
      *
      * Note: For MasterCard/Maestro, the RefundType field is MANDATORY
      * per the 2026 UMF Changes when TxnType is "Refund".
@@ -537,7 +565,7 @@ public class FiservUmfMessageBuilder {
         writeElement(w, "MerchCatCode", merchantCatCode);
         writeElement(w, "POSEntryMode", "071");
         writeElement(w, "POSCondCode", "00");
-        writeElement(w, "TermCatCode", "14");
+        writeElement(w, "TermCatCode", "09");
         writeElement(w, "TermEntryCapablt", "04");
         writeElement(w, "TxnAmt", formatAmount(refundAmountInCents));
         writeElement(w, "TxnCrncy", CURRENCY_USD);
@@ -565,6 +593,118 @@ public class FiservUmfMessageBuilder {
 
         // --- Scheme-specific group ---
         writeSchemeGroup(w, cardType, false);
+
+        w.writeEndElement(); // CreditRequest
+        w.writeEndElement(); // GMF
+        w.writeEndDocument();
+        w.flush();
+
+        return sw.toString();
+    }
+
+    // =========================================================================
+    // 5b. REFERENCED REFUND — Linked to original authorization
+    // =========================================================================
+
+    /**
+     * Builds a referenced Refund request linked to a prior authorization.
+     *
+     * A referenced refund includes OrigAuthGrp to tie it back to the original
+     * transaction. This gives better interchange rates and reduces chargeback risk.
+     *
+     * Key rules:
+     *   - RefNum is NEW (not the original auth's RefNum)
+     *   - OrigAuthGrp echoes fields from the original auth response
+     *   - Scheme-specific reference must be echoed (Visa TransID, MC BanknetData, etc.)
+     *   - For MasterCard/Maestro: RefundType is mandatory (2026 UMF Change)
+     *
+     * LIMITATION: Like buildCompletion(), this method does not accept scheme-specific
+     * echo fields. For production, add Visa TransID / MC BanknetData / etc. parameters.
+     */
+    public static String buildReferencedRefund(
+            String merchantId,
+            String terminalId,
+            String stan,
+            String refNum,           // NEW RefNum (not original auth's)
+            String orderNum,
+            String merchantCatCode,
+            long refundAmountInCents,
+            String track2Data,
+            String cardType,
+            String emvTlvHexString,
+            // Original Authorization fields (from stored auth response)
+            String origAuthId,
+            String origResponseDate,
+            String origLocalDateTime,
+            String origTranDateTime,
+            String origStan,
+            String origRespCode
+    ) throws Exception {
+
+        StringWriter sw = new StringWriter();
+        XMLStreamWriter w = XMLOutputFactory.newInstance().createXMLStreamWriter(sw);
+
+        w.writeStartDocument("UTF-8", "1.0");
+        w.writeStartElement("GMF");
+        w.writeDefaultNamespace(GMF_NAMESPACE);
+
+        w.writeStartElement("CreditRequest");
+
+        // --- CommonGrp ---
+        w.writeStartElement("CommonGrp");
+        writeElement(w, "PymtType", "Credit");
+        writeElement(w, "TxnType", "Refund");
+        writeElement(w, "LocalDateTime", localDateTimeNow());
+        writeElement(w, "TrnmsnDateTime", utcDateTimeNow());
+        writeElement(w, "STAN", stan);
+        writeElement(w, "RefNum", refNum);
+        writeElement(w, "OrderNum", orderNum);
+        writeElement(w, "TPPID", TPP_ID);
+        writeElement(w, "TermID", terminalId);
+        writeElement(w, "MerchID", merchantId);
+        writeElement(w, "MerchCatCode", merchantCatCode);
+        writeElement(w, "POSEntryMode", "071");
+        writeElement(w, "POSCondCode", "00");
+        writeElement(w, "TermCatCode", "09");
+        writeElement(w, "TermEntryCapablt", "04");
+        writeElement(w, "TxnAmt", formatAmount(refundAmountInCents));
+        writeElement(w, "TxnCrncy", CURRENCY_USD);
+        writeElement(w, "TermLocInd", "0");
+        writeElement(w, "CardCaptCap", "1");
+        writeElement(w, "GroupID", GROUP_ID);
+        if ("MasterCard".equals(cardType)) {
+            writeElement(w, "RefundType", "R");  // Full Refund
+        }
+        w.writeEndElement(); // CommonGrp
+
+        // --- CardGrp ---
+        w.writeStartElement("CardGrp");
+        writeElement(w, "Track2Data", track2Data);
+        writeElement(w, "CardType", cardType);
+        w.writeEndElement(); // CardGrp
+
+        // --- EMVGrp ---
+        if (emvTlvHexString != null) {
+            w.writeStartElement("EMVGrp");
+            writeElement(w, "EMVData", emvTlvHexString);
+            w.writeEndElement(); // EMVGrp
+        }
+
+        // --- Scheme-specific group ---
+        // TODO: Pass scheme-specific echo fields (Visa TransID, MC BanknetData,
+        //       Amex AmExTranID, Discover DiscNRID) from original Auth response.
+        //       Currently writes a minimal scheme group.
+        writeSchemeGroup(w, cardType, false);
+
+        // --- OrigAuthGrp (links refund to original authorization) ---
+        w.writeStartElement("OrigAuthGrp");
+        writeElement(w, "OrigAuthID", origAuthId);
+        writeElement(w, "OrigResponseDate", origResponseDate);
+        writeElement(w, "OrigLocalDateTime", origLocalDateTime);
+        writeElement(w, "OrigTranDateTime", origTranDateTime);
+        writeElement(w, "OrigSTAN", origStan);
+        writeElement(w, "OrigRespCode", origRespCode);
+        w.writeEndElement(); // OrigAuthGrp
 
         w.writeEndElement(); // CreditRequest
         w.writeEndElement(); // GMF
@@ -635,7 +775,7 @@ public class FiservUmfMessageBuilder {
         writeElement(w, "MerchCatCode", merchantCatCode);
         writeElement(w, "POSEntryMode", "071");
         writeElement(w, "POSCondCode", "00");
-        writeElement(w, "TermCatCode", "14");
+        writeElement(w, "TermCatCode", "09");
         writeElement(w, "TermEntryCapablt", "04");
         writeElement(w, "TxnAmt", formatAmount(amountInCents));
         writeElement(w, "TxnCrncy", CURRENCY_USD);
@@ -709,7 +849,8 @@ public class FiservUmfMessageBuilder {
         w.writeStartElement("AdminRequest");
 
         w.writeStartElement("CommonGrp");
-        writeElement(w, "PymtType", "Debit");
+        // Note: PymtType and TxnCrncy are NOT allowed in AdminRequest
+        // (Fiserv returns RE008 if present)
         writeElement(w, "TxnType", "EncryptionKeyRequest");
         writeElement(w, "LocalDateTime", localDateTimeNow());
         writeElement(w, "TrnmsnDateTime", utcDateTimeNow());
@@ -718,8 +859,10 @@ public class FiservUmfMessageBuilder {
         writeElement(w, "TPPID", TPP_ID);
         writeElement(w, "TermID", terminalId);
         writeElement(w, "MerchID", merchantId);
-        writeElement(w, "TxnCrncy", CURRENCY_USD);
         writeElement(w, "GroupID", GROUP_ID);
+        // EnhKeyFmt is mandatory for EncryptionKeyRequest
+        // Only valid value per XSD: "T" (TR-31 key block format)
+        writeElement(w, "EnhKeyFmt", "T");
         w.writeEndElement(); // CommonGrp
 
         w.writeEndElement(); // AdminRequest
@@ -741,24 +884,23 @@ public class FiservUmfMessageBuilder {
      */
     private static void writeSchemeGroup(XMLStreamWriter w, String cardType, boolean isAuth)
             throws Exception {
+        // For non-auth messages (Completion, Void, Refund), scheme echo fields should be
+        // passed via parameters. If no echo fields are available, omit the group entirely —
+        // Fiserv rejects empty scheme groups (e.g., <VisaGrp></VisaGrp>) with error 904.
+        if (!isAuth) return;
+
         switch (cardType) {
             case "Visa":
                 w.writeStartElement("VisaGrp");
-                if (isAuth) {
-                    writeElement(w, "ACI", "Y"); // Cardholder present, card present
-                }
-                // VisaBID and VisaAUAR are conditional — typically sent on authorization
-                if (isAuth) {
-                    writeElement(w, "VisaBID", "56412"); // Bank Identification — from merchant setup
-                    writeElement(w, "VisaAUAR", "000000000000");
-                    writeElement(w, "TaxAmtCapablt", "1");
-                }
+                writeElement(w, "ACI", "Y"); // Cardholder present, card present
+                writeElement(w, "VisaBID", "56412"); // Bank Identification — from merchant setup
+                writeElement(w, "VisaAUAR", "000000000000");
+                writeElement(w, "TaxAmtCapablt", "1");
                 w.writeEndElement(); // VisaGrp
                 break;
 
             case "MasterCard":
                 w.writeStartElement("MCGrp");
-                // BanknetData is echoed from response in subsequent transactions
                 // For initial auth, no specific fields required
                 w.writeEndElement(); // MCGrp
                 break;
@@ -766,13 +908,11 @@ public class FiservUmfMessageBuilder {
             case "Discover":
             case "Diners": // Diners processed via Discover network
                 w.writeStartElement("DSGrp");
-                // Discover-specific fields
                 w.writeEndElement(); // DSGrp
                 break;
 
             case "Amex":
                 w.writeStartElement("AmexGrp");
-                // Amex-specific fields
                 w.writeEndElement(); // AmexGrp
                 break;
         }
@@ -791,6 +931,13 @@ public class FiservUmfMessageBuilder {
     /** Returns current UTC date/time as YYYYMMDDhhmmss. */
     private static String utcDateTimeNow() {
         return LocalDateTime.now(ZoneOffset.UTC).format(DT_FORMAT);
+    }
+
+    /** Extracts the PAN from a Track2 equivalent string (PAN=expiry...). */
+    private static String extractPanFromTrack2(String track2Data) {
+        if (track2Data == null) return null;
+        int sep = track2Data.indexOf('=');
+        return sep > 0 ? track2Data.substring(0, sep) : track2Data;
     }
 
     /** Writes a simple XML element with text content. Skips if value is null. */

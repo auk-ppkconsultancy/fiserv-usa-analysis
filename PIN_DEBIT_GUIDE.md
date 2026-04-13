@@ -10,18 +10,17 @@
 
 1. [Overview](#1-overview)
 2. [PIN Debit vs. PINless POS Debit](#2-pin-debit-vs-pinless-pos-debit)
-3. [Encryption Methods](#3-encryption-methods)
+3. [Encryption Method: Master Session Encryption](#3-encryption-method-master-session-encryption)
 4. [Master Session Encryption Lifecycle](#4-master-session-encryption-lifecycle)
-5. [DUKPT Encryption](#5-dukpt-encryption)
-6. [PIN Block Construction](#6-pin-block-construction)
-7. [PINGrp Field Mapping](#7-pingrp-field-mapping)
-8. [Online PIN vs. CDCVM Decision Tree](#8-online-pin-vs-cdcvm-decision-tree)
-9. [PINless POS Debit](#9-pinless-pos-debit)
-10. [Debit Network Routing](#10-debit-network-routing)
-11. [Transaction Flows](#11-transaction-flows)
-12. [Key Management: Test vs. Production](#12-key-management-test-vs-production)
-13. [SoftPOS / MPoC Considerations](#13-softpos--mpoc-considerations)
-14. [Open Questions](#14-open-questions)
+5. [PIN Block Construction](#5-pin-block-construction)
+6. [PINGrp Field Mapping](#6-pingrp-field-mapping)
+7. [Online PIN vs. CDCVM Decision Tree](#7-online-pin-vs-cdcvm-decision-tree)
+8. [PINless POS Debit](#8-pinless-pos-debit)
+9. [Debit Network Routing](#9-debit-network-routing)
+10. [Transaction Flows](#10-transaction-flows)
+11. [Key Management: Test vs. Production](#11-key-management-test-vs-production)
+12. [SoftPOS / MPoC Considerations](#12-softpos--mpoc-considerations)
+13. [Open Questions](#13-open-questions)
 
 ---
 
@@ -31,7 +30,7 @@ PIN Debit and PINless POS Debit are both **selected** in the RSO024 Project Prof
 
 | Feature | Selected | UMF Message Type | Key Requirement |
 |---|---|---|---|
-| **PIN Debit** | Yes | `DebitRequest` / `DebitResponse` | PIN encryption (DUKPT or Master Session) |
+| **PIN Debit** | Yes | `DebitRequest` / `DebitResponse` | PIN encryption (Master Session) |
 | **PINless POS Debit** | Yes | `PinlessDebitRequest` / `PinlessDebitResponse` | No PIN encryption needed |
 | **PIN Debit Refund** | Yes | `DebitRequest` with `TxnType=Refund` | — |
 | **Master Session Encryption** | Yes | `AdminRequest` (`EncryptionKeyRequest`) | HSM, 24h key rotation |
@@ -47,8 +46,8 @@ PIN Debit and PINless POS Debit are both **selected** in the RSO024 Project Prof
 |---|---|---|
 | **Cardholder Verification** | Online PIN entry | No PIN required |
 | **UMF Message** | `DebitRequest` | `PinlessDebitRequest` |
-| **PINGrp Required** | Yes (PINData + key identifier) | No |
-| **PIN Encryption** | Required (DUKPT or Master Session) | Not applicable |
+| **PINGrp Required** | Yes (PINData + MSKeyID) | No |
+| **PIN Encryption** | Required (Master Session Encryption) | Not applicable |
 | **Card Types** | Debit cards with PIN support | Debit cards eligible for PINless routing |
 | **Transaction Limits** | No limit (PIN verified) | Subject to PINless threshold (network-dependent) |
 | **Contactless Support** | Requires online PIN on device | CDCVM or below CVM limit |
@@ -58,42 +57,22 @@ PIN Debit and PINless POS Debit are both **selected** in the RSO024 Project Prof
 
 ---
 
-## 3. Encryption Methods
+## 3. Encryption Method: Master Session Encryption
 
-Two PIN encryption methods are supported in the project profile:
-
-### 3.1 Master Session Encryption (Selected)
+Softpay will use **Master Session Encryption** for PIN Debit. This is selected in the RSO024 Project Profile along with TR-31 Key Block.
 
 | Attribute | Detail |
 |---|---|
 | **Mechanism** | Pre-shared master key encrypts randomly generated session keys |
-| **Key Rotation** | Every 24 hours |
-| **HSM** | Required on Softpay backend |
+| **Key Rotation** | Every 24 hours via `EncryptionKeyRequest` |
+| **HSM** | Required on Softpay backend to decrypt session keys |
 | **Key Exchange** | `TxnType=EncryptionKeyRequest` via `AdminRequest` |
 | **Key Block** | TR-31 format (ANSI standard) |
 | **Key Identifier** | `MSKeyID` field in `PINGrp` (up to 10 alphanumeric chars) |
-| **PIN Block** | Encrypted using current session key |
+| **PIN Block** | Encrypted using current session key (ISO Format 0) |
+| **PINGrp Fields** | `PINData` + `MSKeyID` |
 
-### 3.2 DUKPT (Derived Unique Key Per Transaction)
-
-| Attribute | Detail |
-|---|---|
-| **Mechanism** | Each transaction uses a unique key derived from a Base Derivation Key (BDK) |
-| **Key Rotation** | Automatic — new key per transaction via KSN counter |
-| **BDK Provisioning** | Must be injected/provisioned on device or backend |
-| **Key Identifier** | `KeySerialNumData` field in `PINGrp` (20 alphanumeric chars) |
-| **KSN Counter** | 21-bit counter within the Key Serial Number; ~1M transactions per BDK |
-| **PIN Block** | Encrypted using the derived unique key |
-
-### 3.3 Which to Use?
-
-| Scenario | Recommended Method | Reason |
-|---|---|---|
-| **Backend-to-Fiserv** (CloudSwitch) | Master Session | Backend manages HSM; single key rotation point |
-| **Device-level encryption** (AppSwitch) | DUKPT | Per-device BDK; no central key management needed per transaction |
-| **Softpay Architecture** | **TBD — Needs Fiserv confirmation** | Depends on where PIN encryption occurs (SDK on device vs. backend) |
-
-> **Open Question:** Fiserv must confirm which method they require/recommend for SoftPOS and whether both are available during testing.
+**Architecture:** Softpay's backend will manage the master key and session key lifecycle. PIN entry occurs on the device (MPoC-certified PIN pad), the PIN block is constructed and encrypted on the backend using the current session key, then sent to Fiserv in the `DebitRequest`.
 
 ---
 
@@ -188,59 +167,7 @@ Day 3, 00:00 UTC
 
 ---
 
-## 5. DUKPT Encryption
-
-### 5.1 Key Serial Number (KSN) Structure
-
-The KSN is a 20-hex-character (10-byte) value:
-
-```
-┌─────────────────────────┬──────────────────┬─────────────┐
-│  BDK Identifier (5 bytes)│ Device ID (19 bits)│Counter (21 bits)│
-│   Bytes 1-5             │  Bits 1-19       │  Bits 20-40 │
-└─────────────────────────┴──────────────────┴─────────────┘
-                          ◄───── Bytes 6-10 ────────────────►
-```
-
-- **BDK Identifier:** Identifies which Base Derivation Key was used
-- **Device ID:** Unique per terminal/device
-- **Counter:** Increments with each transaction (21 bits = ~2,097,152 transactions max)
-
-### 5.2 DUKPT Key Derivation Flow
-
-```
-BDK (Base Derivation Key)
-  │
-  ├── IPEK (Initial PIN Encryption Key) — derived from BDK + KSN
-  │     │
-  │     ├── Future Key 1 (KSN counter = 1)
-  │     ├── Future Key 2 (KSN counter = 2)
-  │     ├── ...
-  │     └── Future Key N (KSN counter = N)
-  │
-  └── Each future key encrypts one PIN block
-```
-
-### 5.3 KSN Counter Management
-
-| Aspect | Detail |
-|---|---|
-| **Counter Size** | 21 bits (~2M transactions) |
-| **Increment** | +1 per PIN-bearing transaction |
-| **Exhaustion** | When counter overflows, new BDK must be provisioned |
-| **Tracking** | Device must persist current KSN counter across restarts |
-| **Synchronization** | Counter is part of KSN sent to Fiserv; Fiserv derives same key |
-
-### 5.4 BDK Provisioning for SoftPOS
-
-> **Open Question:** How are BDKs provisioned for SoftPOS devices? Standard POS terminals receive BDKs via physical key injection. For SoftPOS, this must be done securely via software, likely through:
-> 1. Secure key download from Fiserv via API
-> 2. Key injection through Softpay's backend
-> 3. HSM-to-HSM transfer
-
----
-
-## 6. PIN Block Construction
+## 5. PIN Block Construction
 
 ### 6.1 ISO Format 0 (ISO-0 / ISO 9564 Format 0)
 
@@ -273,7 +200,7 @@ PIN Field:  041234FFFFFFFFFF
 PAN Field:  0000476153000111
 
 Clear Block: 04125E9EFFFFFFEE
-                    ↓ Encrypt with DUKPT-derived key or session key
+                    ↓ Encrypt with Master Session session key
 Encrypted:  A1B2C3D4E5F60718  (16 hex chars → PINData field)
 ```
 
@@ -289,21 +216,21 @@ ISO-4 is the newer AES-based format:
 | **Random Padding** | No | Yes (improved security) |
 | **Hex Output** | 16 chars | 32 chars |
 
-> **Open Question:** Fiserv must confirm which PIN block format is required. The XSD defines `PINData` as `Len16HexString` (exactly 16 hex chars = 8 bytes), which suggests **ISO Format 0** (3DES-based). ISO Format 4 produces 32 hex chars and would not fit this field.
+**Confirmed:** The XSD defines `PINData` as `Len16HexString` (exactly 16 hex chars = 8 bytes), confirming **ISO Format 0**. ISO Format 4 produces 32 hex chars and does not fit this field. Softpay will use ISO Format 0.
 
 ---
 
-## 7. PINGrp Field Mapping
+## 6. PINGrp Field Mapping
 
-### 7.1 XSD Definition
+### 6.1 XSD Definition
 
 ```xml
 <xs:complexType name="PINGrp">
   <xs:sequence>
     <xs:element ref="PINData" minOccurs="0" />           <!-- 16 hex chars, encrypted PIN block -->
-    <xs:element ref="KeySerialNumData" minOccurs="0" />  <!-- 20 alphanumeric, DUKPT KSN -->
-    <xs:element ref="KeyOffset" minOccurs="0" />          <!-- 4 alphanumeric -->
-    <xs:element ref="KeyMgtData" minOccurs="0" />         <!-- max 36 hex chars -->
+    <xs:element ref="KeySerialNumData" minOccurs="0" />  <!-- 20 alphanumeric (DUKPT — not used) -->
+    <xs:element ref="KeyOffset" minOccurs="0" />          <!-- 4 alphanumeric (not used) -->
+    <xs:element ref="KeyMgtData" minOccurs="0" />         <!-- max 36 hex chars (not used) -->
     <xs:element ref="MSKeyID" minOccurs="0" />            <!-- max 10 alphanumeric, Master Session Key ID -->
     <xs:element ref="NumPINDigits" minOccurs="0" />       <!-- 4, 5, 6, 7, 8, 9, 10, 11, or 12 -->
     <xs:element ref="EnhKeyFmt" minOccurs="0" />          <!-- "T" (TR-31) -->
@@ -314,40 +241,15 @@ ISO-4 is the newer AES-based format:
 </xs:complexType>
 ```
 
-### 7.2 Field Usage by Encryption Method
-
-#### DUKPT Encryption
+### 6.2 Field Usage: Master Session Encryption
 
 | Field | Required | Value |
 |---|---|---|
-| `PINData` | **Yes** | 16-hex-char encrypted PIN block |
-| `KeySerialNumData` | **Yes** | 20-char DUKPT Key Serial Number |
-| `NumPINDigits` | Conditional | Number of PIN digits (4-12) |
-| `MSKeyID` | No | Not used for DUKPT |
-| `KeyOffset` | No | — |
-| `KeyMgtData` | No | — |
-| `EnhKeyFmt` | No | — |
-| `EnhKeyMgtData` | No | — |
-| `EnhKeyChkDig` | No | — |
-| `EnhKeySlot` | No | — |
-
-```xml
-<PINGrp>
-  <PINData>A1B2C3D4E5F60718</PINData>
-  <KeySerialNumData>FFFF9876543210E00001</KeySerialNumData>
-</PINGrp>
-```
-
-#### Master Session Encryption
-
 | Field | Required | Value |
 |---|---|---|
-| `PINData` | **Yes** | 16-hex-char encrypted PIN block |
+| `PINData` | **Yes** | 16-hex-char encrypted PIN block (ISO Format 0) |
 | `MSKeyID` | **Yes** | Session key identifier from `EncryptionKeyRequest` response |
 | `NumPINDigits` | Conditional | Number of PIN digits (4-12) |
-| `KeySerialNumData` | No | Not used for Master Session |
-| `KeyOffset` | No | — |
-| `KeyMgtData` | No | — |
 | `EnhKeyFmt` | No | — |
 | `EnhKeyMgtData` | No | — |
 | `EnhKeyChkDig` | No | — |
@@ -360,7 +262,7 @@ ISO-4 is the newer AES-based format:
 </PINGrp>
 ```
 
-#### TR-31 Enhanced Key Format
+### 6.3 TR-31 Enhanced Key Format
 
 When `EnhKeyFmt = "T"` (TR-31), the enhanced fields are used:
 
@@ -384,7 +286,7 @@ When `EnhKeyFmt = "T"` (TR-31), the enhanced fields are used:
 
 ---
 
-## 8. Online PIN vs. CDCVM Decision Tree
+## 7. Online PIN vs. CDCVM Decision Tree
 
 ```
 Card presented via NFC tap
@@ -431,7 +333,7 @@ Card presented via NFC tap
 
 ---
 
-## 9. PINless POS Debit
+## 8. PINless POS Debit
 
 ### 9.1 Overview
 
@@ -476,7 +378,7 @@ PINless debit uses a different message type:
 
 ---
 
-## 10. Debit Network Routing
+## 9. Debit Network Routing
 
 ### 10.1 How Routing Works
 
@@ -508,7 +410,7 @@ Many US debit cards have both a credit AID (e.g., Visa credit) and a debit AID (
 
 ---
 
-## 11. Transaction Flows
+## 10. Transaction Flows
 
 ### 11.1 PIN Debit Authorization + Completion
 
@@ -524,12 +426,12 @@ Many US debit cards have both a credit AID (e.g., Visa credit) and a debit AID (
       │     (Softpay certified PIN component)     │
       │                                           │
       │  3. Encrypt PIN block                     │
-      │     (DUKPT or Master Session)             │
+      │     (Master Session Encryption)             │
       │                                           │
       │  4. DebitRequest                          │
       │     PymtType=Debit                        │
       │     TxnType=Authorization                 │
-      │     PINGrp: PINData + KeySerialNumData    │
+      │     PINGrp: PINData + MSKeyID              │
       │  ──────────────────────────────────────►   │
       │                                           │
       │  5. DebitResponse                         │
@@ -645,19 +547,18 @@ Many US debit cards have both a credit AID (e.g., Visa credit) and a debit AID (
 
 ---
 
-## 12. Key Management: Test vs. Production
+## 11. Key Management: Test vs. Production
 
-### 12.1 Environment Separation
+### 11.1 Environment Separation
 
 | Aspect | Test / Sandbox | Production |
 |---|---|---|
 | **Master Key** | Test master key (provided by Fiserv for development) | Production master key (separate, more secure provisioning) |
-| **DUKPT BDK** | Test BDK | Production BDK |
 | **Session Keys** | Generated from test master key | Generated from production master key |
 | **MID/TID** | `RCTST1000119068/69/70` / `001-003` | Production MID/TID (different format) |
 | **Keys Interchangeable?** | **No** — test and production keys are completely separate |
 
-### 12.2 Key Provisioning Steps
+### 11.2 Key Provisioning Steps
 
 | Step | Responsibility | Action |
 |---|---|---|
@@ -668,7 +569,7 @@ Many US debit cards have both a credit AID (e.g., Visa credit) and a debit AID (
 | 5. Validate | Both | Run test transactions to verify PIN encryption |
 | 6. Production keys | Fiserv | Separate provisioning process for production |
 
-### 12.3 TR-31 Key Block Format
+### 11.3 TR-31 Key Block Format
 
 TR-31 is an ANSI standard for secure key exchange:
 
@@ -689,9 +590,9 @@ The `EnhKeyFmt = "T"` flag in `PINGrp` indicates TR-31 format is being used.
 
 ---
 
-## 13. SoftPOS / MPoC Considerations
+## 12. SoftPOS / MPoC Considerations
 
-### 13.1 PIN on COTS Challenge
+### 12.1 PIN on COTS Challenge
 
 Traditional PIN entry happens on a dedicated, tamper-resistant PIN pad (PED). SoftPOS/COTS devices do **not** have a PED. Instead:
 
@@ -703,7 +604,7 @@ Traditional PIN entry happens on a dedicated, tamper-resistant PIN pad (PED). So
 | **Key Storage** | Tamper-resistant security module | Secure element / TEE / software-based |
 | **Certification** | PCI PTS | PCI MPoC (Mobile Payments on COTS) |
 
-### 13.2 Softpay's Certified PIN Component
+### 12.2 Softpay's Certified PIN Component
 
 Softpay provides a **certified PIN pad** as part of the SoftPOS SDK:
 - Stable digit positions (prevents shoulder surfing)
@@ -712,74 +613,56 @@ Softpay provides a **certified PIN pad** as part of the SoftPOS SDK:
 - Attestation-based device integrity checks
 - Backend follows PCI DSS and MPoC standards
 
-### 13.3 Integration Architecture
+### 12.3 Integration Architecture (Master Session)
 
-The PIN encryption flow for SoftPOS depends on where encryption occurs:
-
-**Option A: Device-Level Encryption (DUKPT)**
-```
-[Softpay SDK PIN Component] → encrypt PIN → [PINData + KSN] → send in DebitRequest
-```
-- BDK must be provisioned to each device
-- KSN counter managed per-device
-- No backend HSM needed for PIN
-
-**Option B: Backend Encryption (Master Session)**
 ```
 [Softpay SDK PIN Component] → secure channel → [Softpay Backend HSM] → encrypt PIN → [PINData + MSKeyID] → send in DebitRequest
 ```
-- Master key in backend HSM
-- Session key from `EncryptionKeyRequest`
-- PIN must transit securely from device to backend
+- Master key stored in backend HSM
+- Session key obtained from `EncryptionKeyRequest` (rotated every 24h)
+- PIN transits securely from device to backend via MPoC-certified secure channel
+- Single key management point on the backend (no per-device key provisioning)
 
-> **Critical Decision:** Softpay and Fiserv must agree on which architecture to use. This impacts security certification, device provisioning, and the integration approach.
-
-### 13.4 MPoC Implications
+### 12.4 MPoC Implications
 
 | Concern | Detail |
 |---|---|
 | **PCI MPoC Standard** | Softpay is already MPoC certified — but the Fiserv integration must not break compliance |
 | **PIN in Transit** | If using backend encryption, the PIN must be encrypted before leaving the device (point-to-point) |
-| **Key Injection** | DUKPT BDK injection on COTS is more complex than on traditional POS |
+| **Key Management** | Master key must be securely stored in backend HSM; session keys rotated every 24h |
 | **Attestation** | Device integrity must be verified before allowing PIN entry |
 | **Screen Capture** | Device must prevent screen capture during PIN entry |
 | **Secure Keyboard** | PIN pad must use a separate secure input method |
 
 ---
 
-## 14. Open Questions
+## 13. Open Questions
 
-### 14.1 Critical (Block Development)
+### 13.1 Critical (Block Development)
 
 | # | Question | Context |
 |---|---|---|
-| 1 | What PIN encryption method does Fiserv require for SoftPOS — DUKPT, AES-DUKPT, or Master Session? | Both Master Session and DUKPT appear supported; need to know which is mandatory/preferred |
-| 2 | What PIN block format is required — ISO Format 0 or ISO Format 4? | `PINData` field is 16 hex chars, suggesting ISO-0 (8 bytes), but need confirmation |
-| 3 | How are DUKPT BDKs provisioned for SoftPOS devices (if DUKPT is used)? | Traditional key injection not possible on COTS; need secure software method |
+| ~~1~~ | ~~What PIN encryption method does Fiserv require?~~ | **DECIDED** — Master Session Encryption (Softpay decision; selected in project profile) |
+| ~~2~~ | ~~What PIN block format is required?~~ | **ANSWERED** — ISO Format 0 (XSD: PINData = Len16HexString = 16 hex = 8 bytes) |
+| 3 | What is the process for obtaining the **test master key** for Sandbox/Certification? | Master key must be pre-shared out-of-band before `EncryptionKeyRequest` can be sent. **Development blocker.** |
 | 4 | Is online PIN supported for **contactless** debit on SoftPOS? | Some networks may not support online PIN for contactless; need per-network confirmation |
-| 5 | What is the process for obtaining test encryption keys for Sandbox? | Need test master key or test BDK before PIN Debit development can begin |
-| 6 | Does the `EncryptionKeyRequest` response return the session key in the `PINEncrptWrkKey` field? | Need to confirm the exact response structure for Master Session key exchange |
-| 7 | Where should PIN encryption occur — on the device (DUKPT) or on the backend (Master Session)? | Architecture decision that affects security certification |
+| 5 | Does the `EncryptionKeyRequest` response return the session key in the `PINEncrptWrkKey` field? | Need to confirm the exact response structure for Master Session key exchange |
 
-### 14.2 Important (Block Certification)
+### 13.2 Important (Block Certification)
 
 | # | Question | Context |
 |---|---|---|
-| 8 | How does Fiserv handle KSN counter management for DUKPT on SoftPOS? | Need counter sync/reset procedures |
-| 9 | What happens when a DUKPT BDK's counter is exhausted? | Need re-keying process |
-| 10 | What is the grace period when a Master Session key expires? | If the 24h rotation fails, how long is the old key valid? |
-| 11 | Are there test BDKs and test master keys already provisioned for RSO024? | May need to request them explicitly |
-| 12 | Does Softpay's MPoC certification satisfy Fiserv's requirements for PIN entry on COTS? | May need additional certification or review |
-| 13 | What are the PINless POS Debit thresholds by network? | Need per-network limits to determine routing |
-| 14 | Are separate `EncryptionKeyRequest` calls needed per MID/TID combination? | Affects key management at scale |
+| 6 | What is the grace period when a Master Session key expires? | If the 24h rotation fails, how long is the old key valid? |
+| 7 | Is a test master key already provisioned for RSO024, or must it be requested? | May need to request it explicitly from Fiserv Certification Analyst |
+| 8 | Does Softpay's MPoC certification satisfy Fiserv's requirements for PIN entry on COTS? | May need additional certification or review |
+| 9 | What are the PINless POS Debit thresholds by network? | Need per-network limits to determine routing |
+| 10 | Are separate `EncryptionKeyRequest` calls needed per MID/TID combination? | Affects key management at scale |
 
-### 14.3 Phase 2
+### 13.3 Phase 2
 
 | # | Question | Context |
 |---|---|---|
-| 15 | Can AES-DUKPT be used as an alternative to standard DUKPT? | AES-DUKPT is listed in the XSD (`AESDUKPT` enum value) |
-| 16 | Is Debit Pre-Authorization relevant for SoftPOS? | Listed as available but not selected |
-| 17 | Can the PIN encryption method be changed post-certification? | Future-proofing |
+| 11 | Is Debit Pre-Authorization relevant for SoftPOS? | Listed as available but not selected |
 
 ---
 
@@ -788,7 +671,7 @@ The PIN encryption flow for SoftPOS depends on where encryption occurs:
 | Field | XSD Type | Format |
 |---|---|---|
 | `PINData` | `Len16HexString` | Exactly 16 hex chars (`[0-9A-F]{16}`) |
-| `KeySerialNumData` | `Len20AN` | Exactly 20 alphanumeric chars (`[0-9A-Za-z]{20}`) |
+| `KeySerialNumData` | `Len20AN` | Exactly 20 alphanumeric chars — **not used** (DUKPT only) |
 | `KeyOffset` | `Len4AN` | Exactly 4 alphanumeric chars |
 | `KeyMgtData` | `Max36HexString` | Up to 36 hex chars |
 | `MSKeyID` | `Len10AN` | Up to 10 alphanumeric chars |
@@ -801,7 +684,7 @@ The PIN encryption flow for SoftPOS depends on where encryption occurs:
 ## Appendix B — Java Code Reference
 
 See [FiservUmfMessageBuilder.java](java-examples/FiservUmfMessageBuilder.java) for:
-- `buildDebitAuthorizationWithPin()` — PIN Debit with DUKPT or Master Session
+- `buildDebitAuthorizationWithPin()` — PIN Debit with Master Session Encryption
 - `buildEncryptionKeyRequest()` — Master Session key exchange via AdminRequest
 
 See [FiservResponseParser.java](java-examples/FiservResponseParser.java) for:
@@ -813,14 +696,13 @@ The Fiserv RCToolkitSampleCode (C# and Java) confirms several PIN Debit implemen
 
 | Finding | Source | Detail |
 |---|---|---|
-| **DUKPT is the demonstrated method** | `DebitSaleRequest.cs` / `DebitRequest.java` | PINGrp populated with `PINData` + `KeySerialNumData` (DUKPT pattern) |
-| **PINData format** | `TestConst.cs` / `TestConst.java` | `"99A14CA1B65D821B"` — 16 hex chars confirming `Len16HexString` and ISO Format 0 |
-| **KeySerialNumData format** | `TestConst.cs` / `TestConst.java` | `"F8765432100015200578"` — 20 chars confirming `Len20AN` |
+| **Sample code uses DUKPT pattern** | `DebitSaleRequest.cs` / `DebitRequest.java` | PINGrp populated with `PINData` + `KeySerialNumData` — note: Softpay will use Master Session (`PINData` + `MSKeyID`) instead |
+| **PINData format confirmed** | `TestConst.cs` / `TestConst.java` | `"99A14CA1B65D821B"` — 16 hex chars confirming `Len16HexString` and ISO Format 0 |
 | **POSEntryMode for Debit** | `DebitSaleRequest.cs` / `DebitRequest.java` | `901` (contactless EMV) |
 | **Partial Auth enabled** | Both Credit and Debit samples | `PartAuthrztnApprvlCapablt = "1"` (enabled by default) |
 | **Track2Data used** | `DebitSaleRequest.cs` / `DebitRequest.java` | Track 2 data sent in CardGrp for swiped debit |
 
-**Implication:** The sample code uses DUKPT (not Master Session) for PIN encryption, which aligns with the most common card-present deployment. The 16-hex-char PINData confirms ISO Format 0. Master Session Encryption is selected in the project profile but may be intended for key management/session encryption rather than per-transaction PIN encryption.
+**Note:** The sample code demonstrates DUKPT (`KeySerialNumData`), but Softpay will use Master Session Encryption (`MSKeyID`). The PINData format (16 hex chars = ISO Format 0) is the same regardless of encryption method.
 
 ---
 

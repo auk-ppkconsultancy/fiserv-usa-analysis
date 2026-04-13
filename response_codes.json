@@ -1612,11 +1612,11 @@
   },
   {
     "code": "532",
-    "description": "DUKPT Base Key missing or incorrect",
+    "description": "Invalid Encryption Key",
     "category": "error",
     "retryable": false,
     "action": "call_support",
-    "merchantMessage": "DUKPT base key missing or incorrect",
+    "merchantMessage": "Encryption key invalid; request new session key",
     "cardholderMessage": "Transaction failed, please try again"
   },
   {
@@ -1666,11 +1666,11 @@
   },
   {
     "code": "542",
-    "description": "DUKPT PIN block processing error",
+    "description": "PIN block processing error",
     "category": "error",
     "retryable": false,
     "action": "call_support",
-    "merchantMessage": "DUKPT PIN block processing error",
+    "merchantMessage": "PIN block processing error",
     "cardholderMessage": "Transaction failed, please try again"
   },
   {

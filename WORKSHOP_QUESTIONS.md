@@ -84,7 +84,7 @@ Questions are grouped by topic and ordered by what blocks development start firs
 
 - **Question:** Can MAC (Message Authentication Code) validation be disabled during the Sandbox/Development phase, or must it be active from the start?
 - **Context:** MAC Master Session is not selected in the RSO024 project profile, but Softpay needs to confirm that message authentication is not enforced during development to reduce initial complexity.
-- **Assumption:** MAC is not required since MAC Master Session and MAC DUKPT are both deselected in the project profile.
+- **Assumption:** MAC is not required since MAC Master Session and MAC DUKPT are both deselected in the project profile. **Note:** This is separate from Master Session Encryption for PIN — MAC is for message authentication, not PIN encryption.
 - **Blocks:** Development
 
 ### Q2.5 — HSM integration requirements
@@ -94,40 +94,21 @@ Questions are grouped by topic and ordered by what blocks development start firs
 - **Assumption:** Softpay will use a cloud HSM for production key storage and session key operations.
 - **Blocks:** Development
 
-### Q2.6 — PIN encryption method preference
+### ~~Q2.6 — PIN encryption method preference~~ RESOLVED
 
-- **Question:** What PIN encryption method does Fiserv require or recommend for SoftPOS -- DUKPT, AES-DUKPT, or Master Session Encryption?
-- **Context:** PIN Debit is selected in the project profile, requiring Softpay to implement the PINGrp; the encryption method determines the key management architecture.
-- **Assumption:** DUKPT (3DES) as the most common method for card-present environments; Softpay's MPoC-certified PIN pad supports this.
-- **Blocks:** Development (PIN Debit)
+- **Answer:** Softpay will use **Master Session Encryption** (selected in the RSO024 Project Profile). PIN encryption occurs on the Softpay backend using the session key obtained via `EncryptionKeyRequest`. PINGrp will contain `PINData` + `MSKeyID`.
 
-### Q2.7 — PIN block format
+### ~~Q2.7 — PIN block format~~ RESOLVED
 
-- **Question:** What PIN block format is required -- ISO Format 0 (ISO 9564-1) or ISO Format 4 (AES-based)?
-- **Context:** The PIN block format determines the encryption algorithm and impacts the certified PIN pad configuration in Softpay's SoftPOS SDK.
-- **Assumption:** ISO Format 0 (most widely used in US card-present environments).
-- **Blocks:** Development (PIN Debit)
+- **Answer:** **ISO Format 0** (ISO 9564-1). Confirmed by the UMF XSD: `PINData` is defined as `Len16HexString` (exactly 16 hex chars = 8 bytes). ISO Format 4 produces 32 hex chars and does not fit this field.
 
-### Q2.8 — BDK provisioning for DUKPT
+### ~~Q2.8 — BDK provisioning for DUKPT~~ N/A
 
-- **Question:** How are Base Derivation Keys (BDKs) provisioned for SoftPOS devices? Are test BDKs available for Sandbox/Certification? What is the provisioning process at scale?
-- **Context:** Each SoftPOS device needs a unique initial PIN encryption key derived from the BDK; the provisioning process must work at scale for thousands of devices.
-- **Assumption:** Fiserv provides a test BDK for development; production BDKs are provisioned through a secure key injection ceremony.
-- **Blocks:** Development (PIN Debit)
+- **Answer:** Not applicable. Softpay will use Master Session Encryption, not DUKPT. No BDK provisioning required.
 
-### Q2.9 — KSN counter management
+### ~~Q2.9 — KSN counter management~~ N/A
 
-- **Question:** How should the DUKPT Key Serial Number (KSN) counter be managed across device reinstalls, app updates, and device resets on SoftPOS?
-- **Context:** Unlike hardware terminals, SoftPOS apps can be reinstalled or reset, which may cause KSN counter reuse -- a critical security issue for DUKPT.
-- **Assumption:** Softpay will persist the KSN counter server-side and synchronize on app initialization to prevent reuse.
-- **Blocks:** Development (PIN Debit)
-
-### Q2.10 — Online PIN for contactless transactions
-
-- **Question:** Is online PIN supported for contactless transactions on SoftPOS/COTS devices, or is it restricted to contact chip only?
-- **Context:** PIN Debit is selected, and for contactless transactions above the CVM limit, CDCVM is the primary mechanism; Softpay needs to know if online PIN is also expected for contactless debit.
-- **Assumption:** Contactless transactions above CVM limit use CDCVM (for digital wallets) or online PIN (for physical debit cards); Softpay's MPoC-certified PIN pad handles the online PIN scenario.
-- **Blocks:** Development (PIN Debit)
+- **Answer:** Not applicable. Softpay will use Master Session Encryption, not DUKPT. No KSN counter management required.
 
 ---
 
@@ -135,33 +116,12 @@ Questions are grouped by topic and ordered by what blocks development start firs
 
 *Blocks: EMV implementation and contactless transaction processing.*
 
-### Q3.1 — EMV contact chip in project profile
-
-- **Question:** EMV (contact chip / dip) is selected as an entry mode in the RSO024 project profile, but SoftPOS devices have no chip card reader. Should this be deselected, or is it intentional (e.g., for fallback scenarios)?
-- **Context:** If contact chip remains selected, Fiserv may include contact chip test cases in certification that Softpay cannot execute; deselecting it avoids unnecessary test scope.
-- **Assumption:** This is a configuration oversight and should be deselected; Softpay will request removal from the project profile.
-- **Blocks:** Development / Certification
-
-### Q3.2 — CAPK distribution method
-
-- **Question:** How are CA Public Key (CAPK) files distributed -- via a download API, through the Rapid Connect portal, or another mechanism?
-- **Context:** Softpay manages its own EMV contactless kernels and needs to keep CAPKs current; the EMV Guide mandates regular CAPK updates (RQ 5700).
-- **Assumption:** CAPKs are downloaded from a Fiserv-hosted endpoint; Softpay will integrate an automated download process.
-- **Blocks:** Development
-
 ### Q3.3 — CAPK update frequency
 
 - **Question:** What is the expected CAPK update frequency, and is there a notification mechanism when new CAPKs are published?
 - **Context:** Softpay needs to schedule CAPK refresh cycles and handle mid-lifecycle key rotations without service interruption.
 - **Assumption:** CAPKs are updated quarterly; Softpay will check for updates weekly.
 - **Blocks:** Development
-
-### Q3.4 — Kernel configuration notification (RQ 0600)
-
-- **Question:** Does Fiserv require notification or approval of the contactless kernel configurations used by Softpay (per EMV Implementation Guide RQ 0600)?
-- **Context:** RQ 0600 states that kernel configurations may need to be reported; Softpay needs to know if this is a formal approval step or informational only.
-- **Assumption:** Softpay will document kernel configurations and share them with Fiserv during the certification review stage.
-- **Blocks:** Certification
 
 ### Q3.5 — Specific kernel parameter settings for contactless SoftPOS
 
@@ -177,31 +137,28 @@ Questions are grouped by topic and ordered by what blocks development start firs
 - **Assumption:** Softpay will populate Tag 9F6E per the standard EMV Guide rules, setting byte values to indicate a COTS mobile device.
 - **Blocks:** Development
 
+### Q3.7 — Production contactless CVM limit recommendations
+
+- **Question:** Table 24 in the EMV Guide references *test* CVM limits. Does Fiserv provide general recommendations for Contactless CVM limits in a **production** environment (per scheme: Visa, Mastercard, Amex, Discover)?
+- **Context:** The EMV Guide's CVM limit table is scoped to test scenarios. SoftPOS deployments need authoritative production CVM thresholds (and any per-MCC or per-region adjustments) to configure the contactless kernel correctly and avoid declines or unnecessary CVM prompts.
+- **Assumption:** Softpay will use scheme-published US production defaults (e.g., MC $100, Amex $50, Discover $25, Visa as configured per region) absent Fiserv-specific guidance.
+- **Blocks:** Development
+
 ---
 
 ## 4. Transaction Processing
 
 *Blocks: Dual-message implementation and core transaction flows.*
 
-### Q4.1 — Sale transaction type intentionally excluded
+### ~~Q4.1 — Sale transaction type intentionally excluded~~ RESOLVED
 
-- **Question:** The Sale transaction type (single-message auth+capture) is NOT selected in the project profile. Can Fiserv confirm this is intentional and that all purchase transactions should use the dual-message Authorization + Completion flow?
-- **Context:** Dual-message is consistent with the tipping workflow (auth pre-tip, complete with tip), but for non-tipping scenarios (Retail/QSR, Supermarket), single-message Sale would be simpler and faster.
-- **Assumption:** All purchases use Authorization + Completion; Softpay will implement accordingly but may request Sale be added in a future phase.
-- **Blocks:** Development
+- **Answer:** Confirmed in Fiserv meeting. Sale is intentionally excluded. Host Capture runs periodic batch cycles (every X minutes), automatically capturing all completed transactions. With Sale (single-message), transactions would be captured and batched almost immediately — leaving no window for voids. Softpay requires at least 15 minutes for void support. The dual-message flow (Authorization → Completion) gives Softpay control over capture timing: voids can be sent any time before the Completion is sent.
 
 ### Q4.2 — Partial Authorization requirement
 
 - **Question:** Is Partial Authorization required for card-present SoftPOS environments? If so, it needs to be enabled in the project profile (currently not selected).
 - **Context:** The Portal Definitions state that "Partial Authorization support is generally required for all Merchants in card-present environments" to handle prepaid and debit cards with limited funds; PIN Debit and PINless POS Debit are both selected.
 - **Assumption:** Partial Authorization is required and should be added to the project profile; Softpay will implement split-tender handling.
-- **Blocks:** Development
-
-### Q4.3 — Void timing and post-cut-off behavior
-
-- **Question:** Voids must be submitted within 25 minutes of the original transaction (per UMF Spec Appendix D). What happens if a Void is submitted after the daily cut-off? Does the response indicate that clearing has already occurred?
-- **Context:** Softpay needs to handle the edge case where a merchant attempts to void a transaction that has already been settled; the app must guide the merchant to process a refund instead.
-- **Assumption:** A Void submitted after cut-off will be declined with a response code indicating settlement has occurred; Softpay will then prompt the merchant to process a refund.
 - **Blocks:** Development
 
 ### ~~Q4.4 — Timeout values for auth/completion/reversal~~ PARTIALLY RESOLVED
@@ -225,16 +182,9 @@ Questions are grouped by topic and ordered by what blocks development start firs
 
 ### Q5.1 — Tipping flow confirmation
 
-- **Question:** Confirm the tipping flow: Authorization (pre-tip amount) followed by Completion (with tip added to TxnAmt). Is this the recommended approach, or does Fiserv expect a different mechanism?
-- **Context:** "Tip Amount" is selected in the project profile and described as a "Reporting field from Rapid Connect to CLX for Quick Service Restaurant industry only," which suggests it may be reporting-only rather than a transactional field.
-- **Assumption:** Tipping works via the dual-message flow: auth for pre-tip amount, Completion for total amount including tip. The tip delta is reflected in the TxnAmt difference.
-- **Blocks:** Development (Restaurant)
-
-### Q5.2 — Tip percentage cap
-
-- **Question:** Is there a percentage cap on the tip amount relative to the original authorization (e.g., 20%, 50%, no limit)?
-- **Context:** Card brands typically allow tip adjustments up to a certain percentage above the authorized amount; Softpay needs to enforce this limit in the app to avoid declines.
-- **Assumption:** Tip can be up to 25% above the original authorization amount (common Visa/MC rule); Softpay will enforce this in the UI.
+- **Question:** Softpay's preferred tipping flow is **tip-before-auth**: collect tip on device, authorize for the full amount (service + tip), then complete for the same amount. Confirm this is accepted by Fiserv across all three RSO024 industries (Restaurant, Retail/QSR, Supermarket). Is the `TipAmt` field in AddtlAmtGrp required or optional when tipping is enabled?
+- **Context:** Tip-before-auth is simpler (auth = completion amount, no 20% tolerance needed) and works for any MCC. The traditional tip-after-auth flow (auth for subtotal, completion for subtotal+tip) is only needed for table-service restaurants with paper receipts.
+- **Assumption:** Tip-before-auth works — `TxnAmt` is just an amount, the protocol doesn't distinguish service vs. tip portions. `TipAmt` is a reporting-only field per Portal Definitions.
 - **Blocks:** Development (Restaurant)
 
 ### Q5.3 — Tipping across industries
@@ -298,113 +248,12 @@ Questions are grouped by topic and ordered by what blocks development start firs
 
 *Blocks: Go-live. Softpay must understand the settlement model to implement end-of-day reconciliation.*
 
-### Q7.1 — OpenBatch/CloseBatch requirement under Host Capture
-
-- **Question:** With Host Capture selected, does Softpay need to send OpenBatch/CloseBatch transactions, or does Fiserv handle batch management entirely?
-- **Context:** Batch Open and Batch Close are not selected in the project profile, but Softpay needs to confirm that no batch operations are required from the terminal side.
-- **Assumption:** No batch operations required from Softpay; Fiserv manages settlement automatically via Host Capture.
-- **Blocks:** Development
-
-### Q7.2 — Settlement reports and confirmations
-
-- **Question:** How does Softpay receive settlement reports or confirmations from Fiserv? Is there an API, SFTP delivery, or portal access?
-- **Context:** Softpay needs to reconcile transactions on the merchant's behalf and provide end-of-day settlement summaries.
-- **Assumption:** Settlement data is available through the Rapid Connect portal; Softpay will reconcile based on its own transaction records.
-- **Blocks:** Go-Live
-
-### Q7.3 — Daily settlement cut-off time
-
-- **Question:** What is the daily settlement cut-off time (in ET or UTC)?
-- **Context:** Softpay needs to communicate settlement timing to merchants and enforce Completion deadlines (e.g., tip adjustments must be submitted before cut-off).
-- **Assumption:** Cut-off is at midnight ET (Eastern Time) per standard Fiserv processing.
-- **Blocks:** Go-Live
-
 ### Q7.4 — Settlement file delivery method
 
 - **Question:** Are settlement files or detailed transaction reports delivered to Softpay via SFTP, API, or another mechanism?
 - **Context:** Automated reconciliation requires machine-readable settlement data; Softpay's reporting infrastructure needs to ingest this data programmatically.
 - **Assumption:** Softpay will reconcile from its own transaction logs and use the Rapid Connect portal for exception investigation.
 - **Blocks:** Go-Live
-
----
-
-## 8. Merchant Onboarding
-
-*Blocks: Scaling beyond pilot. Critical for operationalizing the integration at volume.*
-
-### Q8.1 — Production MID/TID assignment
-
-- **Question:** How are production MIDs and TIDs assigned for each Softpay merchant? Is this a manual process or is there an automated provisioning flow?
-- **Context:** Softpay onboards merchants programmatically via its Merchant Integration API (MIA); the MID/TID assignment process must align with Softpay's automated onboarding.
-- **Assumption:** MID/TID assignment is a manual process through the Fiserv relationship manager; Softpay will need to coordinate onboarding for each new merchant.
-- **Blocks:** Go-Live
-
-### Q8.2 — API for programmatic merchant boarding
-
-- **Question:** Is there an API or automated process for programmatic merchant boarding, similar to Softpay's MIA (Merchant Integration API)?
-- **Context:** Softpay needs to scale to thousands of merchants without manual intervention for each onboarding; an API-based flow is essential for the self-service model.
-- **Assumption:** No API exists; Softpay will work with Fiserv to establish a batch onboarding process for scale.
-- **Blocks:** Go-Live
-
-### ~~Q8.3 — Datawire DID management at scale~~ PARTIALLY RESOLVED
-
-- **Answer:** Per the Secure Transport Guide: Each MID/TID/ServiceID/App combination gets a unique DID via SRS. No bulk provisioning API exists — SRS must be performed individually per combination. DID must be stored securely and permanently; it cannot be reused across different MID/TID combinations. Fiserv *"strongly recommends an automated process for SRS that can be easily re-triggered as needed"* — manual SRS (developer-crafted XML) is explicitly discouraged. Activation must complete within a limited time period or the DID is auto-deactivated and SRS must restart.
-- **Remaining questions:** (1) Are there limits on the number of active DIDs per merchant/group? (2) Is there a DID expiry or renewal requirement? (3) For Softpay's model where one MID may have thousands of TIDs (one per device), is the per-TID SRS the correct model, or should Softpay use a single TID per MID with session/device differentiation?
-- **Blocks:** Go-Live
-
-### Q8.4 — KYC/KYB requirements and responsibility
-
-- **Question:** What KYC/KYB documentation is required for merchant onboarding, and who is responsible -- Softpay, Fiserv, or the merchant's acquiring bank?
-- **Context:** Softpay needs to understand the compliance requirements for US merchant onboarding to build the correct document collection flow.
-- **Assumption:** KYC/KYB is handled by the acquiring bank or Fiserv; Softpay collects and forwards documentation as needed.
-- **Blocks:** Go-Live
-
----
-
-## 9. Certification
-
-*Blocks: Certification stage. These questions should be answered before development concludes.*
-
-### Q9.1 — Estimated Full-Cert timeline
-
-- **Question:** What is the estimated timeline for Full-Cert completion based on similar SoftPOS or mobile POS integrations Fiserv has certified?
-- **Context:** Softpay estimates 6-9 months end-to-end (analysis through go-live); certification timeline directly impacts the go-live date commitment.
-- **Assumption:** Certification (Stage 2 through Stage 4) takes 6-12 weeks after development is complete, based on typical payment integration timelines.
-- **Blocks:** Certification
-
-### Q9.2 — MPoC/EMV certification acceptance
-
-- **Question:** Does Softpay's existing MPoC certification and EMV L1/L2 certification satisfy Fiserv's card brand certification requirements (per EMV Guide RQ 0800), or is additional card brand-specific certification needed?
-- **Context:** Softpay is already MPoC-certified with pre-certified contactless EMV kernels; re-certification through Fiserv would add significant time and cost.
-- **Assumption:** Softpay's existing MPoC/L1/L2 certifications are accepted; Softpay will provide certification documentation during the Review stage.
-- **Blocks:** Certification
-
-### Q9.3 — Visa/MC contactless simulators
-
-- **Question:** Are Fiserv-hosted Visa and Mastercard contactless simulators available for development testing, or must Softpay use its own test card infrastructure?
-- **Context:** Contactless EMV testing requires specific test card profiles that exercise all code paths (ARQC generation, CDCVM, below/above CVM limit); simulators accelerate development.
-- **Assumption:** Softpay will use its own test card infrastructure and the test PANs provided in the SDK.
-- **Blocks:** Development
-
-### Q9.4 — Sandbox availability
-
-- **Question:** Is the Sandbox environment available 24/7, or are there scheduled maintenance windows?
-- **Context:** Softpay's development team spans multiple time zones and may test outside US business hours.
-- **Assumption:** Sandbox is available 24/7 with occasional maintenance windows communicated in advance.
-- **Blocks:** Development
-
-### Q9.5 — L3 scheme certification
-
-- **Question:** Is a separate Level 3 (L3) scheme certification required for each card brand, or does Fiserv's Rapid Connect certification cover scheme-level approval?
-- **Context:** L3 certification can add months to the timeline; Softpay needs to plan accordingly if separate scheme certifications are required.
-- **Assumption:** Fiserv's Full-Cert covers scheme-level requirements; no separate L3 certification is needed.
-- **Blocks:** Certification
-
-### ~~Q9.6 — Environment credential separation~~ PARTIALLY RESOLVED
-
-- **Answer:** Per the Secure Transport Guide: Staging and Production use completely separate infrastructure (URLs, SRS hosts, DIDs). Staging: `stg.dw.us.fdcnet.biz` + `stagingsupport.datawire.net`. Production: `prod.dw.us.fdcnet.biz` + `support.datawire.net`. Hard-coded parameters (App=RAPIDCONNECTSRS, ServiceID=160) are environment-agnostic. AuthKey1/AuthKey2 (GroupID+MID / TID) are account-specific, not environment-specific — the same MID/TID values would need separate SRS in each environment. Datawire compliance certification is valid for 2 years and requires re-engagement for review.
-- **Remaining question:** Do the test MIDs (RCTST1000119068-070) work in both staging (dev) and staging (cert), or are cert-phase MIDs different?
-- **Blocks:** Certification
 
 ---
 
@@ -418,17 +267,15 @@ Suggested duration: **2 hours**. Adjust based on attendee availability.
 | 0:05 | 5 min | Softpay SoftPOS platform overview | -- | Softpay |
 | 0:10 | 5 min | RSO024 project profile walkthrough | -- | Fiserv |
 | 0:15 | 15 min | **Connectivity & Environments** (Q1.1-Q1.6) | Section 1 | Both |
-| 0:30 | 20 min | **Security & Key Management** (Q2.1-Q2.10) | Section 2 | Both |
-| 0:50 | 15 min | **EMV & Contactless Configuration** (Q3.1-Q3.6) | Section 3 | Both |
-| 1:05 | 10 min | **Transaction Processing** (Q4.1-Q4.5) | Section 4 | Both |
-| 1:15 | 10 min | **Tipping** (Q5.1-Q5.4) | Section 5 | Both |
+| 0:30 | 20 min | **Security & Key Management** (Q2.1-Q2.9) | Section 2 | Both |
+| 0:50 | 15 min | **EMV & Contactless Configuration** (Q3.3, Q3.5-Q3.7) | Section 3 | Both |
+| 1:05 | 10 min | **Transaction Processing** (Q4.1-Q4.2, Q4.4-Q4.5) | Section 4 | Both |
+| 1:15 | 10 min | **Tipping** (Q5.1, Q5.3-Q5.4) | Section 5 | Both |
 | 1:25 | 10 min | **DCC** (Q6.1-Q6.5) | Section 6 | Both |
-| 1:35 | 5 min | **Settlement & Reconciliation** (Q7.1-Q7.4) | Section 7 | Both |
-| 1:40 | 5 min | **Merchant Onboarding** (Q8.1-Q8.4) | Section 8 | Both |
-| 1:45 | 5 min | **Certification** (Q9.1-Q9.6) | Section 9 | Both |
-| 1:50 | 10 min | Action items recap and next steps | -- | Both |
+| 1:35 | 5 min | **Settlement & Reconciliation** (Q7.4) | Section 7 | Both |
+| 1:40 | 20 min | Action items recap and next steps | -- | Both |
 
-**Note:** Sections 1-3 (Connectivity, Security, EMV) are prioritized as they block development start. If time runs short, Sections 7-9 (Settlement, Onboarding, Certification) can be deferred to a follow-up call as they block later project phases.
+**Note:** Sections 1-3 (Connectivity, Security, EMV) are prioritized as they block development start.
 
 ---
 
@@ -443,17 +290,12 @@ Use this table to capture assignments and deadlines during the workshop.
 | A3 | ~~Provide recommended timeout values~~ (30s ClientTimeout, 45s socket; confirm TOR timing) | Fiserv | | Resolved | Development |
 | A4 | Provide test encryption keys (Master Session) | Fiserv | | Open | Development |
 | A5 | ~~Confirm TLS version requirement~~ (TLSv1.3 + 1.2, 4 cipher suites) | Fiserv | | Resolved | Development |
-| A6 | Confirm PIN encryption method and block format | Fiserv | | Open | Development |
-| A7 | Provide test BDKs for DUKPT | Fiserv | | Open | Development |
-| A8 | Clarify online PIN for contactless on SoftPOS | Fiserv | | Open | Development |
-| A9 | Deselect EMV contact chip from project profile (if confirmed) | Fiserv | | Open | Development |
-| A10 | Confirm Partial Authorization requirement | Fiserv | | Open | Development |
-| A11 | Confirm tipping flow and field placement | Fiserv | | Open | Development |
-| A12 | Clarify DCC rate feed provider and process | Fiserv | | Open | Development |
-| A13 | Share Softpay MPoC/L1/L2 certification docs | Softpay | | Open | Certification |
-| A14 | Share Softpay kernel configuration documentation | Softpay | | Open | Certification |
-| A15 | Establish communication channel (Slack/Teams/email) | Both | | Open | Development |
-| A16 | Schedule follow-up call for Settlement/Onboarding/Certification | Both | | Open | Go-Live |
+| A6 | ~~Confirm PIN encryption method and block format~~ (Master Session + ISO-0; Softpay decision) | Fiserv | | Resolved | Development |
+| A7 | ~~Provide test BDKs for DUKPT~~ → Replaced: **Provide test master key for Master Session Encryption** | Fiserv | | Open | Development |
+| A8 | Confirm Partial Authorization requirement | Fiserv | | Open | Development |
+| A9 | Confirm tipping flow and field placement | Fiserv | | Open | Development |
+| A10 | Clarify DCC rate feed provider and process | Fiserv | | Open | Development |
+| A11 | Establish communication channel (Slack/Teams/email) | Both | | Open | Development |
 | | | | | | |
 | | | | | | |
 | | | | | | |
@@ -466,10 +308,10 @@ Use this table to capture assignments and deadlines during the workshop.
 
 | Blocks | Question IDs | Count | Resolved |
 |--------|-------------|-------|----------|
-| **Development** | Q1.1-Q1.6, Q2.1-Q2.10, Q3.1-Q3.3, Q3.5-Q3.6, Q4.1-Q4.5, Q5.1-Q5.4, Q6.1-Q6.2, Q6.4-Q6.5, Q7.1 | 33 | 6 resolved (Q1.1, Q1.3, Q1.5, Q1.6, Q2.1, Q4.4†), 2 partial (Q1.2†, Q1.4†) |
-| **Certification** | Q3.4, Q6.3, Q9.1-Q9.2, Q9.5-Q9.6 | 6 | 1 partial (Q9.6†) |
-| **Go-Live** | Q7.2-Q7.4, Q8.1-Q8.4 | 7 | 1 partial (Q8.3†) |
-| **Total** | | **46** | **8 fully resolved, 4 partially resolved** |
+| **Development** | Q1.1-Q1.6, Q2.1-Q2.9, Q3.3, Q3.5-Q3.7, Q4.1-Q4.2, Q4.4-Q4.5, Q5.1, Q5.3-Q5.4, Q6.1-Q6.2, Q6.4-Q6.5 | 25 | 10 resolved (Q1.1, Q1.3, Q1.5, Q1.6, Q2.1, Q2.6, Q2.7, Q4.1, Q4.4†), 2 N/A (Q2.8, Q2.9), 2 partial (Q1.2†, Q1.4†) |
+| **Certification** | Q6.3 | 1 | 0 |
+| **Go-Live** | Q7.4 | 1 | 0 |
+| **Total** | | **27** | **12 fully resolved/N/A, 2 partially resolved, 13 remaining** |
 
 † = resolved/partially resolved from SDK documentation (Secure Transport Guide, Datawire Compliance Test Form, sample code)
 
